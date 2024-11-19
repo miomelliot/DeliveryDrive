@@ -1,0 +1,29 @@
+image:
+  repository: postgres
+  tag: "13-alpine"
+  pullPolicy: IfNotPresent
+
+env:
+  - name: POSTGRES_USER
+    value: "pg_user"            # Имя пользователя базы данных
+  - name: POSTGRES_PASSWORD
+    value: "pg_password"          # Пароль пользователя базы данных
+  - name: POSTGRES_DB
+    value: "example_db"          # Имя базы данных, которую нужно создать
+
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+
+persistence:
+  enabled: true                 # Включение постоянного хранилища для данных
+  storageClass: "standard"      # Класс хранилища, определённый в кластере Kubernetes
+  accessMode: "ReadWriteOnce"   # Режим доступа к хранилищу
+  size: "10Gi"                  # Размер диска для хранения данных
+
+service:
+  port: 5432                    # Порт, на котором PostgreSQL будет слушать внутри контейнера
