@@ -13,3 +13,15 @@ volumes:
   - name: avatars
     persistentVolumeClaim:
       claimName: avatars-pvc
+
+env:
+  - name: POSTGRES_DB
+    value: mydb
+  - name: POSTGRES_USER
+    value: myuser
+  - name: POSTGRES_PASSWORD
+    value: mypassword
+  - name: POSTGRES_HOST
+    value: postgres-service
+  - name: POSTGRES_PORT
+    value: "5432"

@@ -14,13 +14,18 @@ from sqlalchemy.ext.asyncio.engine import AsyncEngine
 
 from db.models import Base
 
-DB_NAME: str = os.getenv("PG_DB", "crm")
-PG_DSN_ADMIN: str = os.getenv(
-    "PG_DSN_ADMIN",
-    "postgresql+asyncpg://pg_user:pg_password@postgres-service:5432/postgres",
-)
-PG_DSN_APP: str = PG_DSN_ADMIN.replace("/postgres", f"/{DB_NAME}")
 
+PG_USER: str = os.getenv("POSTGRES_USER", "pg_user")
+PG_PASS: str = os.getenv("POSTGRES_PASSWORD", "pg_password")
+PG_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+PG_PORT: str = os.getenv("POSTGRES_PORT", "5432")
+PG_DB: str = os.getenv("POSTGRES_DB", "postgres")
+
+PG_DSN_ADMIN: str = (
+    f"postgresql+asyncpg://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+)
+
+PG_DSN_APP: str = PG_DSN_ADMIN
 
 # ─────────── helpers ───────────
 async def _database_exists() -> bool:
@@ -28,7 +33,7 @@ async def _database_exists() -> bool:
     async with admin_engine.connect() as conn:
         result: CursorResult[Any] = await conn.execute(
             text("SELECT 1 FROM pg_database WHERE datname=:name"),
-            {"name": DB_NAME},
+            {"name": PG_DB},
         )
         return result.scalar() is not None
 
@@ -36,7 +41,7 @@ async def _database_exists() -> bool:
 async def _create_database() -> None:
     admin_engine: AsyncEngine = create_async_engine(PG_DSN_ADMIN, isolation_level="AUTOCOMMIT")
     async with admin_engine.connect() as conn:
-        await conn.execute(text(f'CREATE DATABASE "{DB_NAME}"'))
+        await conn.execute(text(f'CREATE DATABASE "{PG_DB}"'))
         await conn.commit()
 
 
