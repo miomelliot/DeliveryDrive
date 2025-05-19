@@ -14,18 +14,16 @@ from sqlalchemy.ext.asyncio.engine import AsyncEngine
 
 from db.models import Base
 
-
 PG_USER: str = os.getenv("POSTGRES_USER", "pg_user")
 PG_PASS: str = os.getenv("POSTGRES_PASSWORD", "pg_password")
 PG_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
 PG_PORT: str = os.getenv("POSTGRES_PORT", "5432")
 PG_DB: str = os.getenv("POSTGRES_DB", "postgres")
 
-PG_DSN_ADMIN: str = (
-    f"postgresql+asyncpg://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
-)
+PG_DSN_ADMIN: str = f"postgresql+asyncpg://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
 
 PG_DSN_APP: str = PG_DSN_ADMIN
+
 
 # ─────────── helpers ───────────
 async def _database_exists() -> bool:

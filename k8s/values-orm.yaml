@@ -1,5 +1,5 @@
 image:
-  repository: docker.io/miomelliot/orm-server
+  repository: miomelliot/orm-server
   tag: "latest"
 
 service:
@@ -25,3 +25,6 @@ env:
     value: postgres-service
   - name: POSTGRES_PORT
     value: "5432"
+
+livenessProbe: {}
+readinessProbe: {}

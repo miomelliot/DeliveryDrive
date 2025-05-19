@@ -31,3 +31,5 @@ volumes:
   - name: postgres-data
     persistentVolumeClaim:
       claimName: postgres-pvc
+
+

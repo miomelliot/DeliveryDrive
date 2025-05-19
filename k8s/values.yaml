@@ -90,14 +90,8 @@ resources:
   #   memory: 128Mi
 
 # Пробы на живость и готовность: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+livenessProbe: null
+readinessProbe: null
 
 # Настройки автоскейлинга: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:
