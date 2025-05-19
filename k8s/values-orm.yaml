@@ -1,0 +1,15 @@
+image:
+  repository: your-registry/orm-server
+  tag: "v0.1.0"
+
+service:
+  port: 8000
+
+volumeMounts:
+  - name: avatars
+    mountPath: /data/avatars
+
+volumes:
+  - name: avatars
+    persistentVolumeClaim:
+      claimName: avatars-pvc

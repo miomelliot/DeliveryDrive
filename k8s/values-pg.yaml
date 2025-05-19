@@ -6,26 +6,22 @@ service:
   port: 5432
 
 livenessProbe:
-  exec:
-    command:
-      - pg_isready
+  exec: { command: ["pg_isready"] }
   initialDelaySeconds: 10
   periodSeconds: 10
 
 readinessProbe:
-  exec:
-    command:
-      - pg_isready
+  exec: { command: ["pg_isready"] }
   initialDelaySeconds: 5
   periodSeconds: 10
 
 env:
   - name: POSTGRES_DB
-    value: "mydb"
+    value: mydb
   - name: POSTGRES_USER
-    value: "myuser"
+    value: myuser
   - name: POSTGRES_PASSWORD
-    value: "mypassword"
+    value: mypassword
 
 volumeMounts:
   - name: postgres-data
