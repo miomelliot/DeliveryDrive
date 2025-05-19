@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
     "aiofiles>=24.1.0",
+    "asyncpg>=0.30.0",
     "grpcio>=1.71.0",
     "sqlalchemy>=2.0.41",
     "uuid6>=2024.7.10",
@@ -19,6 +20,7 @@ packages = ["orm-server"]
 
 [dependency-groups]
 dev = [
+    "grpcio-tools>=1.71.0",
     "mypy>=1.15.0",
     "mypy-protobuf>=3.6.0",
     "nox[uv]>=2025.5.1",
@@ -26,6 +28,7 @@ dev = [
     "types-aiofiles>=24.1.0.20250516",
     "types-protobuf>=6.30.2.20250516",
 ]
+
 
 [tool.ruff]
 exclude = [
@@ -59,6 +62,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 8
+
 
 [tool.mypy]
 python_version = "3.13"
