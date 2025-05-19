@@ -5,6 +5,8 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiofiles>=24.1.0",
+    "grpcio>=1.71.0",
     "sqlalchemy>=2.0.41",
     "uuid6>=2024.7.10",
 ]
@@ -18,7 +20,45 @@ packages = ["orm-server"]
 
 [dependency-groups]
 dev = [
+    "grpcio-tools>=1.71.0",
     "mypy>=1.15.0",
+    "mypy-protobuf>=3.6.0",
     "nox[uv]>=2025.5.1",
     "ruff>=0.11.10",
+    "types-aiofiles>=24.1.0.20250516",
 ]
+
+
+[tool.ruff]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    ".venv",
+    "env",
+    "migrations",
+]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "N", "I", "C"]
+ignore = ["E203", "W293", "N802"]
+per-file-ignores = { "__init__.py" = ["F401"] }
+fixable = ["ALL"]
+
+[tool.ruff.format]
+line-ending = "auto"
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+strict = true
+warn_unused_configs = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]

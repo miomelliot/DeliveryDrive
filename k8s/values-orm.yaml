@@ -1,6 +1,6 @@
 image:
-  repository: your-registry/orm-server
-  tag: "v0.1.0"
+  repository: docker.io/miomelliot/orm-server
+  tag: "latest"
 
 service:
   port: 8000

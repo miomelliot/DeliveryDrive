@@ -105,15 +105,13 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(Text)
     phone: Mapped[str] = mapped_column(Text)
     email: Mapped[str] = mapped_column(Text, unique=True)
-    avatar: Mapped[str] = mapped_column(Text)
+    avatar_path: Mapped[str] = mapped_column(Text)
     password_hash: Mapped[str] = mapped_column(Text)
     role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="RESTRICT"))
     role: Mapped[Role] = relationship()
 
     # удобная связь для колокольчика
-    notifications: Mapped[list["Notification"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
-    )
+    notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Address(Base):
@@ -131,9 +129,7 @@ class Warehouse(Base):
     __tablename__ = "warehouse"
 
     id: Mapped[UUID] = UUID_PRIMARY
-    address_id: Mapped[UUID] = mapped_column(
-        ForeignKey(Address.id, ondelete="RESTRICT")
-    )
+    address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="RESTRICT"))
     address: Mapped[Address] = relationship()
 
 
@@ -172,9 +168,7 @@ class Contract(Base):
     __tablename__ = "contract"
 
     id: Mapped[UUID] = UUID_PRIMARY
-    order_id: Mapped[UUID] = mapped_column(
-        ForeignKey(Order.id, ondelete="CASCADE"), unique=True
-    )
+    order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"), unique=True)
     file_path: Mapped[str] = mapped_column(Text)
     order: Mapped[Order] = relationship()
 
@@ -227,9 +221,7 @@ class Route(Base):
 
 class RouteItem(Base):
     __tablename__ = "route_item"
-    __table_args__ = (
-        UniqueConstraint("route_id", "sequence", name="uq_route_sequence"),
-    )
+    __table_args__ = (UniqueConstraint("route_id", "sequence", name="uq_route_sequence"),)
 
     id: Mapped[UUID] = UUID_PRIMARY
     route_id: Mapped[UUID] = mapped_column(ForeignKey(Route.id, ondelete="CASCADE"))
@@ -273,9 +265,7 @@ class OrderHistory(Base):
 
     id: Mapped[UUID] = UUID_PRIMARY
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
-    timestamp: Mapped[dt_datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(tz.utc)
-    )
+    timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     previous_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
     new_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
@@ -297,9 +287,7 @@ class AuditLog(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
     event: Mapped[str] = mapped_column(Text)
     target_table: Mapped[str] = mapped_column(Text)
-    timestamp: Mapped[dt_datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(tz.utc)
-    )
+    timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     old_values: Mapped[dict[str, Any]] = mapped_column(JSONB)
     new_values: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
@@ -311,9 +299,7 @@ class Notification(Base):
     id: Mapped[UUID] = UUID_PRIMARY
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     text: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[dt_datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(tz.utc)
-    )
+    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="notifications")
