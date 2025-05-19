@@ -9,7 +9,7 @@ ENV TZ=Europe/Moscow \
     PYTHONUNBUFFERED=1
 
 # ---------- install prod deps ----------
-# pyproject.toml и uv.lock находятся в app/orm-server/
+# Кладём только файлы зависимостей в контекст слоя
 COPY app/orm-server/pyproject.toml \
     app/orm-server/uv.lock \
     ./
@@ -20,14 +20,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---------- copy service code ----------
 # 1) сам orm-server
 COPY app/orm-server/src ./src
-# 2) общие gRPC stubs
-COPY app/shared ./shared
-
-# при необходимости докинуть другие общие модули:
-# COPY app/shared/utils ./shared/utils
+# 2) общие gRPC-stubs (кладём внутрь src/shared)
+COPY app/shared ./src/shared
+#   если есть ещё общие утилиты, раскомментируй:
+# COPY app/shared/utils ./src/shared/utils
 
 # ---------- install project-internal deps ----------
-# если pyproject.toml помечает src как пакет, тянем его сюда:
+# если в pyproject указано   [tool.poetry.packages] / [project]  → "src"
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 

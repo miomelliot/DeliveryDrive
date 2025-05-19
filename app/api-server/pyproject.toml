@@ -2,11 +2,8 @@
 name = "api-server"
 version = "0.1.0"
 description = "Add your description here"
-readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "grpcio>=1.71.0",
-]
+dependencies = ["grpcio>=1.71.0"]
 
 [build-system]
 requires = ["hatchling"]
