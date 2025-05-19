@@ -1,34 +1,31 @@
-# ---------- base image ----------
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
-# ---------- env & workdir ----------
 WORKDIR /app
+
 ENV TZ=Europe/Moscow \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1
 
-# ---------- install prod deps ----------
-# Кладём только файлы зависимостей в контекст слоя
-COPY app/orm-server/pyproject.toml \
-    app/orm-server/uv.lock \
-    ./
+# Копируем зависимости
+COPY app/orm-server/pyproject.toml .
+COPY app/orm-server/uv.lock .
 
+# Ставим зависимости без dev
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
-# ---------- copy service code ----------
-# 1) сам orm-server
+# Копируем исходники orm-server
 COPY app/orm-server/src ./src
-# 2) общие gRPC-stubs (кладём внутрь src/shared)
-COPY app/shared ./src/shared
-#   если есть ещё общие утилиты, раскомментируй:
-# COPY app/shared/utils ./src/shared/utils
 
-# ---------- install project-internal deps ----------
-# если в pyproject указано   [tool.poetry.packages] / [project]  → "src"
+# Копируем shared код (в т.ч. gRPC stubs)
+COPY app/shared ./src/shared
+
+# Повторная проверка зависимостей
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-# ---------- entrypoint ----------
+# Добавляем .venv/bin в PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
 CMD ["uv", "run", "src/run_grpc.py"]

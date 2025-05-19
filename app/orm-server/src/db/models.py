@@ -30,12 +30,13 @@ class Base(DeclarativeBase):
 
 
 # единый столбец-шаблон для UUID v7
-UUID_PRIMARY: Mapped[UUID] = mapped_column(
-    PG_UUID(as_uuid=True),
-    primary_key=True,
-    default=uuid7,
-    nullable=False,
-)
+def uuid_pk() -> Mapped[UUID]:
+    return mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid7,
+        nullable=False,
+    )
 
 
 # ──────────────── Reference / Lookup ────────────────
@@ -100,7 +101,7 @@ class TransportType(Base):
 class User(Base):
     __tablename__ = "user"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     first_name: Mapped[str] = mapped_column(Text)
     last_name: Mapped[str] = mapped_column(Text)
     phone: Mapped[str] = mapped_column(Text)
@@ -117,7 +118,7 @@ class User(Base):
 class Address(Base):
     __tablename__ = "address"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     street: Mapped[str] = mapped_column(Text)
     building: Mapped[str] = mapped_column(Text)
     city: Mapped[str] = mapped_column(Text)
@@ -128,7 +129,7 @@ class Address(Base):
 class Warehouse(Base):
     __tablename__ = "warehouse"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="RESTRICT"))
     address: Mapped[Address] = relationship()
 
@@ -137,7 +138,7 @@ class Warehouse(Base):
 class Client(Base):
     __tablename__ = "client"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(Text)
     phone: Mapped[str] = mapped_column(Text)
     address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id))
@@ -147,7 +148,7 @@ class Client(Base):
 class Order(Base):
     __tablename__ = "order"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     client_id: Mapped[UUID] = mapped_column(ForeignKey(Client.id))
     created_at: Mapped[dt_datetime] = mapped_column(
         DateTime(timezone=True),
@@ -167,7 +168,7 @@ class Order(Base):
 class Contract(Base):
     __tablename__ = "contract"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"), unique=True)
     file_path: Mapped[str] = mapped_column(Text)
     order: Mapped[Order] = relationship()
@@ -177,7 +178,7 @@ class Contract(Base):
 class Equipment(Base):
     __tablename__ = "equipment"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     heater_type_id: Mapped[int] = mapped_column(ForeignKey(HeaterType.id))
     serial_number: Mapped[str] = mapped_column(Text, unique=True)
     equipment_status_id: Mapped[int] = mapped_column(ForeignKey(EquipmentStatus.id))
@@ -193,7 +194,7 @@ class Equipment(Base):
 class Maintenance(Base):
     __tablename__ = "maintenance"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     equipment_id: Mapped[UUID] = mapped_column(ForeignKey(Equipment.id))
     date: Mapped[dt_date] = mapped_column(Date)
 
@@ -202,7 +203,7 @@ class Maintenance(Base):
 class OrderItem(Base):
     __tablename__ = "order_item"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"))
     heater_type_id: Mapped[int] = mapped_column(ForeignKey(HeaterType.id))
     quantity: Mapped[int] = mapped_column(Integer)
@@ -212,7 +213,7 @@ class OrderItem(Base):
 class Route(Base):
     __tablename__ = "route"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
     date: Mapped[dt_date] = mapped_column(Date)
     planned_start: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
@@ -223,7 +224,7 @@ class RouteItem(Base):
     __tablename__ = "route_item"
     __table_args__ = (UniqueConstraint("route_id", "sequence", name="uq_route_sequence"),)
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     route_id: Mapped[UUID] = mapped_column(ForeignKey(Route.id, ondelete="CASCADE"))
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
     sequence: Mapped[int] = mapped_column(Integer)
@@ -232,7 +233,7 @@ class RouteItem(Base):
 class Tracking(Base):
     __tablename__ = "tracking"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     route_item_id: Mapped[UUID] = mapped_column(ForeignKey(RouteItem.id))
     event_type_id: Mapped[int] = mapped_column(ForeignKey(EventType.id))
     event_time: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
@@ -241,7 +242,7 @@ class Tracking(Base):
 class Transport(Base):
     __tablename__ = "transport"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
     transport_type_id: Mapped[int] = mapped_column(ForeignKey(TransportType.id))
 
@@ -250,7 +251,7 @@ class Transport(Base):
 class Invoice(Base):
     __tablename__ = "invoice"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
     amount: Mapped[float] = mapped_column(Numeric(12, 2))
     invoice_status_id: Mapped[int] = mapped_column(ForeignKey(InvoiceStatus.id))
@@ -263,7 +264,7 @@ class OrderHistory(Base):
     __tablename__ = "order_history"
     __table_args__ = (UniqueConstraint("order_id", "timestamp"),)
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
     timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     previous_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
@@ -274,7 +275,7 @@ class OrderHistory(Base):
 class CourierSchedule(Base):
     __tablename__ = "courier_schedule"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
     start_time: Mapped[dt_time] = mapped_column(Time)
     end_time: Mapped[dt_time] = mapped_column(Time)
@@ -283,7 +284,7 @@ class CourierSchedule(Base):
 class AuditLog(Base):
     __tablename__ = "audit_log"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
     event: Mapped[str] = mapped_column(Text)
     target_table: Mapped[str] = mapped_column(Text)
@@ -296,7 +297,7 @@ class AuditLog(Base):
 class Notification(Base):
     __tablename__ = "notification"
 
-    id: Mapped[UUID] = UUID_PRIMARY
+    id: Mapped[UUID] = uuid_pk()
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
