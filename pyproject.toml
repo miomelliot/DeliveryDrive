@@ -1,9 +1,10 @@
 [project]
 name = "dd"
 version = "0.1.0"
-description = "Add your description here"
 requires-python = ">=3.13"
-dependencies = []
+description = "Add your description here"
+
+dependencies = ["grpcio>=1.63.0", "protobuf>=4.23.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -13,9 +14,4 @@ build-backend = "hatchling.build"
 packages = ["dd"]
 
 [dependency-groups]
-dev = [
-    "grpcio-tools>=1.71.0",
-    "mypy>=1.15.0",
- "nox[uv]>=2025.5.1",
- "ruff>=0.11.10",
-]
+dev = ["grpcio-tools>=1.71.0", "nox[uv]>=2025.5.1"]

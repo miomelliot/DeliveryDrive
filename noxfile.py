@@ -4,26 +4,36 @@ from pathlib import Path
 
 import nox
 
-# Используем uv как движок venv (fallback на virtualenv, если uv не завезли)
+# ────────────────────── Settings ──────────────────────
+# Предпочитаем uv‑виртуалки (fallback → virtualenv)
 nox.options.default_venv_backend = "uv|virtualenv"
-# Запускаем по умолчанию линтеры/тайпчекер
-nox.options.sessions = ["ruff", "ruff_format", "mypy"]
+# По умолчанию запускаем генерацию gRPC‑стабов
+nox.options.sessions = ["gen_protos"]
 
-#  ──┐  api-server/noxfile.py
-#    └─ parent*2 →  <repo root>/app
-BASE_DIR: Path = Path(__file__).resolve().parent.parent  # <repo root>/app
-PROTO_DIR: Path = BASE_DIR / "shared" / "protos"  # app/shared/protos
-OUT_DIR: Path = BASE_DIR / "shared" / "grpc_stubs"  # app/shared/grpc_stubs
+# ────────────────────── Paths ─────────────────────────
+#   repo_root/
+#   ├── app/
+#   │   └── shared/{protos, grpc_stubs}
+#   └── noxfile.py  ← (вот тут мы и находимся)
+ROOT_DIR: Path = Path(__file__).resolve().parent          # repo_root/
+APP_DIR: Path = ROOT_DIR / "app"                         # repo_root/app
+PROTO_DIR: Path = APP_DIR / "shared" / "protos"        # app/shared/protos
+OUT_DIR: Path = APP_DIR / "shared" / "grpc_stubs"      # app/shared/grpc_stubs
 
+# ────────────────────── Sessions ──────────────────────
 
 @nox.session(reuse_venv=True)
 def gen_protos(session: nox.Session) -> None:
     """Генерируем Python gRPC stubs (+ .pyi) из *.proto → app/shared/grpc_stubs"""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Ищем .proto в указанной директории (без поддиректорий)
     proto_files: list[str] = [str(p) for p in PROTO_DIR.glob("*.proto")]
     if not proto_files:
         session.error(f"Нет .proto файлов в {PROTO_DIR}")
+
+    # grpcio-tools нужен только для генерации
+    session.install("grpcio-tools>=1.63.0", "protobuf>=4.23.0")
 
     session.run(
         "python",
@@ -48,7 +58,6 @@ def deploy(session: nox.Session) -> None:
     Можно передать namespace позиционным аргументом:
         nox -s deploy -- dev
     """
-
     namespace: str = session.posargs[0] if session.posargs else "default"
 
     def _kubectl(*args: str) -> None:
@@ -59,7 +68,7 @@ def deploy(session: nox.Session) -> None:
     # 1. PVC
     _kubectl("apply", "-f", "k8s/pvc.yaml")
 
-    # 2. PostgreSQL (StatefulSet)
+    # 2. PostgreSQL (Deployment) – ждём готовности прямо через Helm
     session.run(
         "helm",
         "upgrade",
@@ -71,11 +80,14 @@ def deploy(session: nox.Session) -> None:
         "--namespace",
         namespace,
         "--create-namespace",
+        "--wait",
+        "--timeout",
+        "5m0s",
         external=True,
     )
 
-    # 3. Ждём готовности PG
-    _kubectl("rollout", "status", "statefulset/pg-k8s")
+    # 3. Котролируем rollout деплоймента, а не statefulset
+    _kubectl("rollout", "status", "deployment/pg-k8s")
 
     # 4. ORM / приложение
     session.run(
