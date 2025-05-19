@@ -4,6 +4,7 @@ from typing import Sequence, Tuple
 from uuid import UUID
 
 import aiofiles
+from google.protobuf.empty_pb2 import Empty
 from sqlalchemy import Select, delete, select
 
 import shared.grpc_stubs.user_pb2 as user_pb2
@@ -43,33 +44,33 @@ class UserService(user_pb2_grpc.UserServiceServicer):
             await s.refresh(u)
             return self._to_proto(u)
 
-    async def GetUser(self, request, context):
+    async def GetUser(self, request, context) -> user_pb2.User:
         async with get_session() as s:
             stmt: Select[Tuple[User]] = select(User).where(User.id == UUID(request.id))
             u: User = (await s.scalars(stmt)).one()
             return self._to_proto(u)
 
-    async def UpdateUser(self, request, context):
+    async def UpdateUser(self, request, context) -> user_pb2.User:
         async with get_session() as s:
-            u = (await s.scalars(select(User).where(User.id == UUID(request.user.id)))).one()
+            u: User = (await s.scalars(select(User).where(User.id == UUID(request.user.id)))).one()
             for field in ("first_name", "last_name", "phone", "email", "role_id"):
                 setattr(u, field, getattr(request.user, field))
             await s.commit()
             return self._to_proto(u)
 
-    async def DeleteUser(self, request, context):
+    async def DeleteUser(self, request, context) -> Empty:
         async with get_session() as s:
             await s.execute(delete(User).where(User.id == UUID(request.id)))
             await s.commit()
-        return user_pb2.google_dot_protobuf_dot_empty__pb2.Empty()
+        return Empty()
 
-    async def ListUsers(self, request, context):
+    async def ListUsers(self, request, context) -> user_pb2.ListUsersResponse:
         async with get_session() as s:
             users: Sequence[User] = (await s.scalars(select(User))).all()
             return user_pb2.ListUsersResponse(users=[self._to_proto(u) for u in users])
 
     # ---------- avatar upload ----------
-    async def UploadAvatar(self, request_iterator, context):
+    async def UploadAvatar(self, request_iterator, context) -> user_pb2.User:
         first = await request_iterator.read()
         user_id = UUID(first.user_id)
         file_path: Path = AVATAR_DIR / f"{user_id}.png"

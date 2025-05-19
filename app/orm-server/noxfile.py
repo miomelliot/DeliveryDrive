@@ -28,7 +28,7 @@ def ruff_format(session: nox.Session) -> None:
 @nox.session(reuse_venv=True)
 def mypy(session: nox.Session) -> None:
     session.install(".[dev]")
-    session.run("mypy", ".", "--exclude", "tests/|build/", external=True)
+    session.run("mypy", ".", "--exclude", "tests/|build/|shared/", external=True)
 
 
 @nox.session(reuse_venv=True)
@@ -39,8 +39,9 @@ def tests(session: nox.Session) -> None:
 
 @nox.session(python=False)
 def gen_protos(session: nox.Session) -> None:
-    """Генерация gRPC stubs из .proto → app/shared/grpc_stubs"""
+    """Генерация gRPC stubs + .pyi из .proto → app/shared/grpc_stubs"""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+
     for proto_file in PROTO_DIR.glob("*.proto"):
         session.run(
             "python",
@@ -49,6 +50,7 @@ def gen_protos(session: nox.Session) -> None:
             f"-I{PROTO_DIR}",
             f"--python_out={OUT_DIR}",
             f"--grpc_python_out={OUT_DIR}",
+            f"--pyi_out={OUT_DIR}",
             str(proto_file),
             external=True,
         )
