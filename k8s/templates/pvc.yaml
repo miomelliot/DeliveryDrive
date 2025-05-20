@@ -5,7 +5,9 @@ metadata:
   name: avatars-pvc
 spec:
   accessModes: [ReadWriteOnce]
-  resources: { requests: { storage: 2Gi } }
+  resources:
+    requests:
+      storage: 2Gi
   storageClassName: standard
 ---
 # postgres
@@ -15,5 +17,7 @@ metadata:
   name: postgres-pvc
 spec:
   accessModes: [ReadWriteOnce]
-  resources: { requests: { storage: 5Gi } }
+  resources:
+    requests:
+      storage: 5Gi
   storageClassName: standard

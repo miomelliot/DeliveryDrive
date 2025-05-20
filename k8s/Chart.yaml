@@ -1,27 +1,6 @@
 apiVersion: v2
 name: deliverydrive
-description: Unified chart for app + db + logging
+description: deliverydrive-chart
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
-
-dependencies:
-  - name: postgres
-    version: 12.1.6
-    repository: https://charts.bitnami.com/bitnami
-    condition: postgres.enabled
-
-  - name: loki
-    version: 5.42.0
-    repository: https://grafana.github.io/helm-charts
-    condition: loki.enabled
-
-  - name: grafana
-    version: 6.58.7
-    repository: https://grafana.github.io/helm-charts
-    condition: grafana.enabled
-
-  - name: alloy
-    version: 0.4.0
-    repository: https://grafana.github.io/helm-charts
-    condition: alloy.enabled
