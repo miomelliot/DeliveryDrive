@@ -19,10 +19,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY app/orm-server/src ./src
 COPY app/shared ./src/shared
 
-# Ещё раз убедимся в зависимостях (уже ничего не изменится)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
-
 # (опционально) Проверим, что stubs появились
 RUN ls src/shared/grpc_stubs
 

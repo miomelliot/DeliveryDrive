@@ -22,7 +22,7 @@ env:
   - name: POSTGRES_PASSWORD
     value: mypassword
   - name: POSTGRES_HOST
-    value: postgres-service
+    value: pg-k8s
   - name: POSTGRES_PORT
     value: "5432"
 

@@ -6,8 +6,6 @@ nox.options.default_venv_backend = "uv|virtualenv"
 nox.options.sessions = ["ruff", "ruff_format", "mypy"]
 
 
-
-
 @nox.session(reuse_venv=True)
 def ruff(session: nox.Session) -> None:
     session.install(".[dev]")
@@ -39,6 +37,7 @@ def tests(session: nox.Session) -> None:
 BASE_DIR: Path = Path(__file__).resolve().parent.parent  # <repo root>
 PROTO_DIR: Path = BASE_DIR / "shared" / "protos"  # DeliveryDrive/shared/protos
 OUT_DIR: Path = BASE_DIR / "shared"  # DeliveryDrive/shared
+
 
 @nox.session(python=False)
 def gen_protos(session: nox.Session) -> None:
