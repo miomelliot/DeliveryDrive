@@ -104,10 +104,10 @@ class User(Base):
 
     id: Mapped[UUID] = uuid_pk()
     first_name: Mapped[str] = mapped_column(Text)
-    last_name: Mapped[str | None] = mapped_column(Text)
+    last_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     phone: Mapped[str] = mapped_column(Text)
     email: Mapped[str] = mapped_column(Text, unique=True)
-    avatar_path: Mapped[str | None] = mapped_column(Text)
+    avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str] = mapped_column(Text)
     role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="RESTRICT"))
     role: Mapped[Role] = relationship()
@@ -119,7 +119,7 @@ class Address(Base):
     __tablename__ = "address"
 
     id: Mapped[UUID] = uuid_pk()
-    street: Mapped[str | None] = mapped_column(Text)
+    street: Mapped[str | None] = mapped_column(Text, nullable=True)
     building: Mapped[str] = mapped_column(Text)
     city: Mapped[str] = mapped_column(Text)
     lat: Mapped[float] = mapped_column(Float)
@@ -159,7 +159,7 @@ class Order(Base):
     rent_start: Mapped[dt_date] = mapped_column(Date)
     rent_end: Mapped[dt_date] = mapped_column(Date)
     status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
-    comment: Mapped[str | None] = mapped_column(Text)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     client: Mapped[Client] = relationship()
     status: Mapped[OrderStatus] = relationship()
@@ -255,8 +255,8 @@ class Invoice(Base):
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
     amount: Mapped[float] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
     invoice_status_id: Mapped[int] = mapped_column(ForeignKey(InvoiceStatus.id))
-    issued_at: Mapped[dt_date | None] = mapped_column(Date)
-    paid_at: Mapped[dt_date | None] = mapped_column(Date)
+    issued_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
+    paid_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
 
 
 # ─────────── History & Audit ───────────
@@ -289,8 +289,8 @@ class AuditLog(Base):
     event: Mapped[str] = mapped_column(Text)
     target_table: Mapped[str] = mapped_column(Text)
     timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
-    old_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    new_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    old_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    new_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 # ─────────────── Notifications ───────────────
