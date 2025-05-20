@@ -1,124 +1,45 @@
-# Значения по умолчанию для k8s.
-# Это YAML-файл.
-# Объявите переменные, которые будут переданы в шаблоны.
-
-# Устанавливает количество реплик. Подробнее: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 
-# Настройки контейнерного образа. Подробнее: https://kubernetes.io/docs/concepts/containers/images/
 image:
   repository: nginx
-  # Политика загрузки образа
   pullPolicy: IfNotPresent
-  # Переопределяет тег образа (по умолчанию — appVersion из чарта)
   tag: ""
 
-# Секреты для загрузки образов из приватного репозитория: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-imagePullSecrets: []
-
-# Переопределение имени чарта
-nameOverride: ""
-fullnameOverride: ""
-
-# Создание service account: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
-  # Нужно ли создать service account
   create: true
-  # Автоматически монтировать credentials API в под
   automount: true
-  # Аннотации, добавляемые к service account
   annotations: {}
-  # Имя service account (если не задано и create=true, то сгенерируется на основе шаблона fullname)
   name: ""
 
-# Аннотации для пода: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-podAnnotations: {}
-
-# Метки для пода: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
-
-# Контекст безопасности для пода
-podSecurityContext:
-  {}
-  # fsGroup: 2000
-
-# Контекст безопасности контейнера
-securityContext:
-  {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-# Настройки сервиса: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  # Тип сервиса: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
-  # Порты сервиса: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 80
 
-# Настройки ingress: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
   className: ""
-  annotations:
-    {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  annotations: {}
   hosts:
     - host: chart-example.local
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
 
-resources:
-  {}
-  # Обычно рекомендуется не задавать ресурсы по умолчанию и оставить это на усмотрение пользователя.
-  # Это также увеличивает шансы, что чарты будут запускаться в средах с ограниченными ресурсами, например, в Minikube.
-  # Если вы хотите задать ресурсы — раскомментируйте строки ниже, настройте и удалите фигурные скобки после 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources: {}
 
-# Пробы на живость и готовность: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe: null
 readinessProbe: null
 
-# Настройки автоскейлинга: https://kubernetes.io/docs/concepts/workloads/autoscaling/
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
-# Дополнительные тома, добавляемые в Deployment
 volumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
-
-# Дополнительные volumeMount'ы для контейнера
 volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
 
-# Селектор узлов (ограничивает размещение пода на конкретных нодах)
 nodeSelector: {}
-
-# Толерации для размещения пода на нодах с taints
 tolerations: []
-
-# Правила аффинности (где и как размещать поды)
 affinity: {}
