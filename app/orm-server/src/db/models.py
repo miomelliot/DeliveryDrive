@@ -1,9 +1,10 @@
 # app/orm-server/src/db/models.py
 from datetime import date as dt_date
-from datetime import datetime
+from datetime import datetime, time
 from datetime import datetime as dt_datetime
 from datetime import time as dt_time
 from datetime import timezone as tz
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -103,15 +104,14 @@ class User(Base):
 
     id: Mapped[UUID] = uuid_pk()
     first_name: Mapped[str] = mapped_column(Text)
-    last_name: Mapped[str] = mapped_column(Text)
+    last_name: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str] = mapped_column(Text)
     email: Mapped[str] = mapped_column(Text, unique=True)
-    avatar_path: Mapped[str] = mapped_column(Text)
+    avatar_path: Mapped[str | None] = mapped_column(Text)
     password_hash: Mapped[str] = mapped_column(Text)
     role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="RESTRICT"))
     role: Mapped[Role] = relationship()
 
-    # удобная связь для колокольчика
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
@@ -119,7 +119,7 @@ class Address(Base):
     __tablename__ = "address"
 
     id: Mapped[UUID] = uuid_pk()
-    street: Mapped[str] = mapped_column(Text)
+    street: Mapped[str | None] = mapped_column(Text)
     building: Mapped[str] = mapped_column(Text)
     city: Mapped[str] = mapped_column(Text)
     lat: Mapped[float] = mapped_column(Float)
@@ -154,12 +154,12 @@ class Order(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(tz.utc),
     )
-    window_start: Mapped[dt_time] = mapped_column(Time)
-    window_end: Mapped[dt_time] = mapped_column(Time)
+    window_start: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
+    window_end: Mapped[dt_time] = mapped_column(Time, default=time(21, 0))
     rent_start: Mapped[dt_date] = mapped_column(Date)
     rent_end: Mapped[dt_date] = mapped_column(Date)
     status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
-    comment: Mapped[str] = mapped_column(Text)
+    comment: Mapped[str | None] = mapped_column(Text)
 
     client: Mapped[Client] = relationship()
     status: Mapped[OrderStatus] = relationship()
@@ -253,10 +253,10 @@ class Invoice(Base):
 
     id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
-    amount: Mapped[float] = mapped_column(Numeric(12, 2))
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
     invoice_status_id: Mapped[int] = mapped_column(ForeignKey(InvoiceStatus.id))
-    issued_at: Mapped[dt_date] = mapped_column(Date)
-    paid_at: Mapped[dt_date] = mapped_column(Date)
+    issued_at: Mapped[dt_date | None] = mapped_column(Date)
+    paid_at: Mapped[dt_date | None] = mapped_column(Date)
 
 
 # ─────────── History & Audit ───────────
@@ -267,7 +267,7 @@ class OrderHistory(Base):
     id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
     timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
-    previous_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
+    previous_status_id: Mapped[int | None] = mapped_column(ForeignKey(OrderStatus.id), nullable=True)
     new_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
 
@@ -277,8 +277,8 @@ class CourierSchedule(Base):
 
     id: Mapped[UUID] = uuid_pk()
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
-    start_time: Mapped[dt_time] = mapped_column(Time)
-    end_time: Mapped[dt_time] = mapped_column(Time)
+    start_time: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
+    end_time: Mapped[dt_time] = mapped_column(Time, default=time(18, 0))
 
 
 class AuditLog(Base):
@@ -289,8 +289,8 @@ class AuditLog(Base):
     event: Mapped[str] = mapped_column(Text)
     target_table: Mapped[str] = mapped_column(Text)
     timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
-    old_values: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    new_values: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    old_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    new_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 # ─────────────── Notifications ───────────────
