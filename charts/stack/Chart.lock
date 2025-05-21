@@ -1,0 +1,15 @@
+dependencies:
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 16.7.4
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 9.0.1
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.29.0
+- name: alloy
+  repository: https://grafana.github.io/helm-charts
+  version: 1.0.3
+digest: sha256:2c800518555f83c46b8c225d14cd6389d6c8c9568cdeeff61fbb79a8d7b60048
+generated: "2025-05-21T19:13:33.573175448+03:00"

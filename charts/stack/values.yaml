@@ -1,0 +1,28 @@
+pg:
+  auth:
+    username: mio
+    password: super-secret
+    database: mydb
+  primary:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+loki:
+  loki:
+    persistence:
+      enabled: true
+      size: 5Gi
+grafana:
+  adminPassword: "dont-put-me-in-git"
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Loki
+        type: loki
+        url: http://loki:3100
+alloy:
+  config:
+    metrics:
+      wal_directory: /var/lib/alloy/wal
