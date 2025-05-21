@@ -1,17 +1,18 @@
 apiVersion: v2
 name: stack
 version: 0.1.0
+icon: https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png
 dependencies:
-- name: postgresql
-  version: ">=16.7.4"
-  repository: "oci://registry-1.docker.io/bitnamicharts"
-  alias: pg
-- name: grafana
-  version: ">=8.0.0"
-  repository: "https://grafana.github.io/helm-charts"
-- name: loki
-  version: ">=6.0.0"
-  repository: "https://grafana.github.io/helm-charts"
-- name: alloy
-  version: ">=0.3.0"
-  repository: "https://grafana.github.io/helm-charts"
+  - name: postgresql
+    version: ">=16.7.4"
+    repository: "oci://registry-1.docker.io/bitnamicharts"
+    alias: pg
+  - name: grafana
+    version: ">=9.0.0"
+    repository: "https://grafana.github.io/helm-charts"
+  - name: loki
+    version: ">=6.29.0"
+    repository: https://grafana.github.io/helm-charts
+  - name: alloy
+    version: ">=1.0.3"
+    repository: "https://grafana.github.io/helm-charts"
