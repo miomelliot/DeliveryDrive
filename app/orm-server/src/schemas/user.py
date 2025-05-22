@@ -1,19 +1,23 @@
-# from datetime import datetime
+# src/schemas/user.py
+from datetime import datetime
+from uuid import UUID
+from pydantic import BaseModel, EmailStr, ConfigDict
 
-# from pydantic import BaseModel, ConfigDict, EmailStr
+class _UserBase(BaseModel):
+    first_name: str
+    last_name: str | None = None
+    phone: str
+    email: EmailStr
+    avatar_path: str | None = None
+    model_config = ConfigDict(from_attributes=True)
 
+class UserCreate(_UserBase):
+    password: str
 
-# class _UserBase(BaseModel):
-#     email: EmailStr
-#     full_name: str | None = None
+class UserUpdate(_UserBase):
+    password: str | None = None
 
-#     model_config = ConfigDict(from_attributes=True)
-
-
-# class UserCreate(_UserBase):
-#     password: str
-
-
-# class UserRead(_UserBase):
-#     id: int
-#     created_at: datetime
+class UserRead(_UserBase):
+    id: UUID
+    role_id: int
+    created_at: datetime

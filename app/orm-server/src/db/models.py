@@ -109,10 +109,16 @@ class User(Base):
     email: Mapped[str] = mapped_column(Text, unique=True)
     avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str] = mapped_column(Text)
-    role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="RESTRICT"))
+
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey(Role.id, ondelete="RESTRICT"),
+    )
     role: Mapped[Role] = relationship()
 
-    notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 class Address(Base):
