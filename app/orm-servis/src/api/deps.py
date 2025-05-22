@@ -31,4 +31,4 @@ def get_current_user(authorization: str = Header(...)) -> CurrentUser:
             role=payload["role"],
         )
     except JWTError as err:
-        raise HTTPException(status_code=405, detail="Недействительный или просроченный токен") from err
+        raise HTTPException(status_code=401, detail="Недействительный или просроченный токен") from err
