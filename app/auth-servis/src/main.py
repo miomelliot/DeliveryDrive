@@ -1,6 +1,6 @@
-def main() -> None:
-    print("Hello from auth-servis!")
+from fastapi import FastAPI
 
+from src.api import auth
 
-if __name__ == "__main__":
-    main()
+app = FastAPI(title="auth-service")
+app.include_router(auth.router)
