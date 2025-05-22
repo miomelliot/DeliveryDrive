@@ -4,10 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
+    "asyncpg>=0.30.0",
     "fastapi[standard]>=0.115.12",
-    "jose>=1.0.0",
     "pydantic-settings>=2.9.1",
     "sqlalchemy>=2.0.41",
+    "python-jose>=3.4.0",
     "uuid6>=2024.7.10",
 ]
 
@@ -37,7 +38,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "N", "I", "C"]
-ignore = ["E203", "W293"]
+ignore = ["E203", "W293", "B008"]
 per-file-ignores = { "__init__.py" = ["F401"] }
 fixable = ["ALL"]
 

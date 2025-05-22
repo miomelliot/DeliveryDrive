@@ -15,7 +15,6 @@ dependencies = [
     "uuid6>=2024.7.10",
 ]
 
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

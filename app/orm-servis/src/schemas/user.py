@@ -1,7 +1,8 @@
 # src/schemas/user.py
-from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, EmailStr
+
 
 class _UserBase(BaseModel):
     first_name: str
@@ -9,15 +10,33 @@ class _UserBase(BaseModel):
     phone: str
     email: EmailStr
     avatar_path: str | None = None
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class UserCreate(_UserBase):
     password: str
+    role_id: int
 
-class UserUpdate(_UserBase):
+
+class UserUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    avatar_path: str | None = None
     password: str | None = None
+    role_id: int | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoleRead(BaseModel):
+    id: int
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserRead(_UserBase):
     id: UUID
-    role_id: int
-    created_at: datetime
+    role: RoleRead

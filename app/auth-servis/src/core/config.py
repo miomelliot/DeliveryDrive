@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     jwt_alg: str = Field("HS256", alias="JWT_ALG")
     access_token_ttl: int = Field(60 * 24 * 30, alias="ACCESS_TOKEN_TTL_MIN")  # 30 дней
 
+    # ── готовый DSN для SQLAlchemy ─────────────────────────────────────────────
     @property
     def sqlalchemy_dsn_str(self) -> str:
         return str(

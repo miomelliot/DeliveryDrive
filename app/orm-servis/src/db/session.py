@@ -1,4 +1,4 @@
-# src/db/db.py
+# src/db/session.py
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from core.config import Settings, get_settings
+from src.core.config import Settings, get_settings
 
 settings: Settings = get_settings()
 
