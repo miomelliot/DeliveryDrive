@@ -3,7 +3,12 @@ name = "orm-server"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
-dependencies = ["sqlalchemy>=2.0.41", "uuid6>=2024.7.10"]
+dependencies = [
+    "fastapi[standard]>=0.115.12",
+    "pydantic-settings>=2.9.1",
+    "sqlalchemy>=2.0.41",
+    "uuid6>=2024.7.10",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -19,7 +24,6 @@ dev = [
     "nox[uv]>=2025.5.1",
     "ruff>=0.11.10",
 ]
-
 
 [tool.ruff]
 exclude = [

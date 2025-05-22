@@ -1,4 +1,4 @@
-# app/orm-server/src/db/models.py
+# src/db/models.py
 from datetime import date as dt_date
 from datetime import datetime, time
 from datetime import datetime as dt_datetime
