@@ -9,14 +9,13 @@ class _UserBase(BaseModel):
     last_name: str | None = None
     phone: str
     email: EmailStr
-    avatar_path: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserCreate(_UserBase):
     password: str
-    role_id: int
+    role_name: str
 
 
 class UserUpdate(BaseModel):
@@ -24,19 +23,12 @@ class UserUpdate(BaseModel):
     last_name: str | None = None
     phone: str | None = None
     email: EmailStr | None = None
-    avatar_path: str | None = None
     password: str | None = None
-    role_id: int | None = None
+    role_name: str | None = None
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-class RoleRead(BaseModel):
-    id: int
-    name: str
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserRead(_UserBase):
     id: UUID
-    role: RoleRead
+    role_name: str

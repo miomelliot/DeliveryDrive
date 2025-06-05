@@ -121,6 +121,7 @@ class User(Base):
     )
 
 
+# адрес
 class Address(Base):
     __tablename__ = "address"
 
@@ -156,10 +157,7 @@ class Order(Base):
 
     id: Mapped[UUID] = uuid_pk()
     client_id: Mapped[UUID] = mapped_column(ForeignKey(Client.id))
-    created_at: Mapped[dt_datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(tz.utc),
-    )
+    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     window_start: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
     window_end: Mapped[dt_time] = mapped_column(Time, default=time(21, 0))
     rent_start: Mapped[dt_date] = mapped_column(Date)
