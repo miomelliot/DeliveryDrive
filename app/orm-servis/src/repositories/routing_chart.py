@@ -13,19 +13,15 @@ from src.db.models import Address, Client, Order, OrderStatus
 
 
 class RoutingChartRepository:
-    """Читает данные заказов по списку UUID‐ов (из Redis)."""
+    """Читает данные заказов по списку UUID-ов (из Redis)."""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
 
     async def get_chart(
         self,
-        order_ids: list[UUID],
         filters: RoutingChartFilter,
     ) -> list[RoutingChartRead]:
-        if not order_ids:
-            return []
-
         stmt: Select[Tuple[UUID, date, date, time, time, str, str, str | None, str, str]] = (
             select(
                 Order.id,
@@ -39,13 +35,12 @@ class RoutingChartRepository:
                 Address.building,
                 OrderStatus.description,
             )
-            .where(Order.id.in_(order_ids))
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
             .join(OrderStatus, OrderStatus.id == Order.status_id)
         )
 
-        # --- поиск по строке ---
+        # 🔍 Поиск
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
             full_addr: Function[Any] = func.lower(
@@ -62,9 +57,11 @@ class RoutingChartRepository:
                 | full_addr.like(like)
             )
 
-        # --- статусы / окно ---
+        # 📋 Выпадающие фильтры
         if filters.description:
             stmt = stmt.where(OrderStatus.description == filters.description)
+
+        # 🕒 Временные рамки
         if filters.window_start_from:
             stmt = stmt.where(Order.window_start >= filters.window_start_from)
         if filters.window_end_to:
@@ -95,3 +92,8 @@ class RoutingChartRepository:
         )
         rows: Sequence[Row[Tuple[UUID, date, date, time, time, str, str, str | None, str, str]]] = res.fetchall()
         return [RoutingChartRead.model_validate(r._asdict()) for r in rows]
+
+    async def get_unique_descriptions(self) -> list[str]:
+        stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
+        result: Result[Tuple[str]] = await self.session.execute(stmt)
+        return [row[0] for row in result.all() if row[0]]
