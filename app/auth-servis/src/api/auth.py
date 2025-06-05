@@ -22,7 +22,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 @router.post("/login", response_model=Token)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_session),\
+    session: AsyncSession = Depends(get_session),
 ) -> Token:
     result: Result[Tuple[User]] = await session.execute(select(User).where(User.email == form_data.username))
     user: User | None = result.scalar_one_or_none()
@@ -45,7 +45,6 @@ async def get_current_user(
     try:
         payload: TokenPayload = decode_access_token(token)
     except Exception as err:
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Недействительный или просроченный токен",
