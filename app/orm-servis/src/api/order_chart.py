@@ -8,7 +8,7 @@ from src.db.session import get_session
 from src.repositories.order_chart import OrderChartRepository
 from src.schemas.order_chart import OrderChartFilter, OrderChartRead
 
-router = APIRouter(prefix="/order-chart", tags=["Order Chart"])
+router = APIRouter(prefix="/charts/order", tags=["Order Chart"])
 
 
 @router.get("/", response_model=list[OrderChartRead])
