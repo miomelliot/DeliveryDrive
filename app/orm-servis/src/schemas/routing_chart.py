@@ -1,4 +1,4 @@
-# src/schemas/routing_selection_chart.py
+# src/schemas/routing_chart.py
 from datetime import datetime, time
 from typing import Literal
 from uuid import UUID
@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-class RoutingSelectionRead(BaseModel):
+class RoutingChartRead(BaseModel):
     id: UUID
     rent_start: datetime
     rent_end: datetime
@@ -19,7 +19,7 @@ class RoutingSelectionRead(BaseModel):
     description: str
 
 
-class RoutingSelectionFilter(BaseModel):
+class RoutingChartFilter(BaseModel):
     search: str | None = None
     order_by: Literal[
         "id",

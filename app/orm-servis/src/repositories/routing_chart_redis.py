@@ -1,4 +1,4 @@
-# src/repositories/routing_selection_redis.py
+# src/repositories/routing_chart_redis.py
 from typing import Awaitable, Set, cast
 from uuid import UUID
 
@@ -7,7 +7,7 @@ import redis.asyncio as redis
 ONE_HOUR = 60 * 60
 
 
-class RoutingSelectionRedis:
+class RoutingChartRedis:
     def __init__(self, client: redis.Redis) -> None:
         self.redis: redis.Redis = client
 

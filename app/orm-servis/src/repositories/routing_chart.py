@@ -8,8 +8,8 @@ from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
+from schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.db.models import Address, Client, Order, OrderStatus
-from src.schemas.routing_selection_chart import RoutingSelectionFilter, RoutingSelectionRead
 
 
 class RoutingChartRepository:
@@ -21,8 +21,8 @@ class RoutingChartRepository:
     async def get_chart(
         self,
         order_ids: list[UUID],
-        filters: RoutingSelectionFilter,
-    ) -> list[RoutingSelectionRead]:
+        filters: RoutingChartFilter,
+    ) -> list[RoutingChartRead]:
         if not order_ids:
             return []
 
@@ -94,4 +94,4 @@ class RoutingChartRepository:
             stmt
         )
         rows: Sequence[Row[Tuple[UUID, date, date, time, time, str, str, str | None, str, str]]] = res.fetchall()
-        return [RoutingSelectionRead.model_validate(r._asdict()) for r in rows]
+        return [RoutingChartRead.model_validate(r._asdict()) for r in rows]
