@@ -31,3 +31,9 @@ def mypy(session: nox.Session) -> None:
 def tests(session: nox.Session) -> None:
     session.install(".[dev]")
     session.run("pytest", "tests/", external=True)
+
+
+@nox.session(reuse_venv=True)
+def serve(session: nox.Session) -> None:
+    session.install(".")
+    session.run("uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "9090", external=True)
