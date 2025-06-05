@@ -1,3 +1,4 @@
+# src/repositories/order_chart.py
 from typing import Any, Sequence, Tuple
 
 from sqlalchemy import Function, Result, Select, func, select
@@ -41,16 +42,25 @@ class OrderChartRepository:
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
             full_name: Function[str] = func.lower(
-                func.concat_ws(" ", func.coalesce(User.first_name, ""), func.coalesce(User.last_name, ""))
+                func.concat_ws(
+                    " ",
+                    func.coalesce(User.first_name, ""),
+                    func.coalesce(User.last_name, ""),
+                )
             )
-
+            full_address: Function[str] = func.lower(
+                func.concat_ws(
+                    ", ",
+                    func.coalesce(Address.city, ""),
+                    func.coalesce(Address.street, ""),
+                    func.coalesce(Address.building, ""),
+                )
+            )
             stmt = stmt.where(
                 func.lower(Client.phone).like(like)
-                | func.lower(Address.city).like(like)
-                | func.lower(Address.street).like(like)
-                | func.lower(Address.building).like(like)
                 | func.lower(OrderStatus.description).like(like)
                 | full_name.like(like)
+                | full_address.like(like)
             )
 
         # 📋 Выпадающие фильтры

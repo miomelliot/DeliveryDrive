@@ -224,6 +224,24 @@ class Route(Base):
     planned_end: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
 
 
+class RoutingSelection(Base):
+    __tablename__ = "routing_selection"
+    __table_args__ = (UniqueConstraint("user_id", "order_id", name="uq_routing_selection"),)
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    order_id: Mapped[UUID] = mapped_column(
+        ForeignKey("order.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    user: Mapped["User"] = relationship()
+    order: Mapped["Order"] = relationship()
+
+
+# элемент_маршрута
 class RouteItem(Base):
     __tablename__ = "route_item"
     __table_args__ = (UniqueConstraint("route_id", "sequence", name="uq_route_sequence"),)
