@@ -8,7 +8,7 @@ from schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.db.session import get_session
 from src.repositories.routing_chart import RoutingChartRepository
 
-router = APIRouter(prefix="/charts/routing", tags=["Routing Chart (PG)"])
+router = APIRouter(prefix="/charts/routing", tags=["Routing Chart"])
 
 
 @router.get("/", response_model=list[RoutingChartRead])
