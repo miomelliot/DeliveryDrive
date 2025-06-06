@@ -4,9 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.db.session import get_session
 from src.repositories.routing_chart import RoutingChartRepository
+from src.schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 
 router = APIRouter(prefix="/charts/routing", tags=["Routing Chart"])
 

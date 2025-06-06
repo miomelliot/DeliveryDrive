@@ -34,15 +34,10 @@ class OrderChartFilter(BaseModel):
         "created_at",
         "rent_start",
         "rent_end",
-        "window_start",
-        "window_end",
         "phone",
         "city",
         "street",
         "building",
-        "description",
-        "first_name",
-        "last_name",
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"
 

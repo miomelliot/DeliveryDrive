@@ -8,13 +8,11 @@ from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.db.models import Address, Client, Order, OrderStatus
+from src.schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 
 
 class RoutingChartRepository:
-    """Читает данные заказов по списку UUID-ов (из Redis)."""
-
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
 

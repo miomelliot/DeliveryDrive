@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import User
+from src.db.models import User
 from src.db.session import get_session
 from src.repositories.user import UserRepository
 from src.schemas.user import UserCreate, UserRead, UserUpdate

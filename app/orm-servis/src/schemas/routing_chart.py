@@ -25,8 +25,6 @@ class RoutingChartFilter(BaseModel):
         "id",
         "rent_start",
         "rent_end",
-        "window_start",
-        "window_end",
         "phone",
         "city",
         "street",
