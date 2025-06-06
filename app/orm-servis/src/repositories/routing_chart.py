@@ -1,6 +1,6 @@
 # src/repositories/routing_chart.py
 from datetime import date, time
-from typing import Sequence, Tuple
+from typing import Any, Dict, Sequence, Tuple
 from uuid import UUID
 
 from sqlalchemy import Label, Result, func, select
@@ -90,7 +90,25 @@ class RoutingChartRepository:
         # 🧾 Выполнение
         res: Result[Tuple[UUID, date, date, time, time, str, str, str]] = await self.session.execute(stmt)
         rows: Sequence[Row[Tuple[UUID, date, date, time, time, str, str, str]]] = res.fetchall()
-        return [RoutingChartRead.model_validate(r._asdict()) for r in rows]
+
+        # 🧠 Формирование ответа
+        result: list[RoutingChartRead] = []
+        for row in rows:
+            d: Dict[str, Any] = row._asdict()
+            window_range: str = f"{d['window_start'].strftime('%H:%M')}–{d['window_end'].strftime('%H:%M')}"
+            result.append(
+                RoutingChartRead(
+                    id=d["id"],
+                    rent_start=d["rent_start"],
+                    rent_end=d["rent_end"],
+                    window=window_range,
+                    phone=d["phone"],
+                    location=d["location"],
+                    description=d["description"],
+                )
+            )
+
+        return result
 
     async def get_unique_descriptions(self) -> list[str]:
         stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
