@@ -9,7 +9,7 @@ class RoutingChartRead(BaseModel):
     id: UUID
     rent_start: datetime
     rent_end: datetime
-    window: str
+    window: str  # HH:MM-HH:MM (window_start_from+window_end_to)
     phone: str
     location: str  # объединённый адрес: city, street, building
     description: str  # статус заказа

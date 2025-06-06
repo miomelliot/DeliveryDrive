@@ -1,8 +1,9 @@
+# src/repositories/user_chart.py
 from datetime import time
-from typing import Sequence, Tuple
+from typing import Any, Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import Result, Select, func, select
+from sqlalchemy import Label, Result, Select, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,11 +16,12 @@ class UserChartRepository:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: UserChartFilter) -> list[UserChartRead]:
-        stmt: Select[tuple[UUID, str, str | None, str, str, str, time, time]] = (
+        full_name_expr: Label[Any] = func.concat_ws(" ", User.first_name, User.last_name).label("full_name")
+
+        stmt: Select[Tuple[UUID, str, str, str, str, time, time]] = (
             select(
                 User.id,
-                User.first_name,
-                User.last_name,
+                full_name_expr,
                 User.phone,
                 User.email,
                 TransportType.name.label("transport_name"),
@@ -31,8 +33,9 @@ class UserChartRepository:
             .join(TransportType, TransportType.id == Transport.transport_type_id)
         )
 
+        # 🔍 Поиск
         if filters.search:
-            search_like: str = f"%{filters.search.lower()}%"
+            search_like = f"%{filters.search.lower()}%"
             stmt = stmt.where(
                 func.lower(User.first_name).like(search_like)
                 | func.lower(User.last_name).like(search_like)
@@ -41,27 +44,38 @@ class UserChartRepository:
                 | func.lower(TransportType.name).like(search_like)
             )
 
-        # Маппинг строковых имён в реальные поля
+        # ⏰ Фильтрация по рабочему времени
+        if filters.start_time:
+            stmt = stmt.where(CourierSchedule.start_time >= filters.start_time)
+        if filters.end_time:
+            stmt = stmt.where(CourierSchedule.end_time <= filters.end_time)
+
+        # ↕️ Сортировка
         field_map = {
             "id": User.id,
-            "first_name": User.first_name,
-            "last_name": User.last_name,
+            "full_name": full_name_expr,
             "phone": User.phone,
             "email": User.email,
             "transport_name": TransportType.name,
-            "start_time": CourierSchedule.start_time,
-            "end_time": CourierSchedule.end_time,
         }
+        order_field = field_map.get(filters.order_by, User.id)
+        stmt = stmt.order_by(order_field.desc() if filters.order_dir == "desc" else order_field.asc())
 
-        order_field = field_map.get(filters.order_by, User.first_name)
-        if filters.order_dir == "desc":
-            stmt = stmt.order_by(order_field.desc())
-        else:
-            stmt = stmt.order_by(order_field.asc())
-
+        # 🔢 Пагинация
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        result: Result[Tuple[UUID, str, str | None, str, str, str, time, time]] = await self.session.execute(stmt)
-        rows: Sequence[Row[Tuple[UUID, str, str | None, str, str, str, time, time]]] = result.fetchall()
+        # 📥 Выполнение
+        result: Result[Tuple[UUID, str, str, str, str, time, time]] = await self.session.execute(stmt)
+        rows: Sequence[Row[Tuple[UUID, str, str, str, str, time, time]]] = result.fetchall()
 
-        return [UserChartRead.model_validate(row._asdict()) for row in rows]
+        return [
+            UserChartRead(
+                id=r.id,
+                full_name=r.full_name,
+                phone=r.phone,
+                email=r.email,
+                transport_name=r.transport_name,
+                work_schedule=f"{r.start_time.strftime('%H:%M')}–{r.end_time.strftime('%H:%M')}",
+            )
+            for r in rows
+        ]

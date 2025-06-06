@@ -1,4 +1,4 @@
-# src/schemas/order_chart.py
+# src/schemas/equipment_chart.py
 from datetime import datetime, time
 from typing import Literal
 from uuid import UUID
@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-class OrderChartRead(BaseModel):
+class EquipmentChartRead(BaseModel):
     # Order
     id: UUID
     created_at: datetime
@@ -23,7 +23,7 @@ class OrderChartRead(BaseModel):
     full_name: str | None  # first_name + last_name
 
 
-class OrderChartFilter(BaseModel):
+class EquipmentChartFilter(BaseModel):
     search: str | None = None
     order_by: Literal[
         "id",
@@ -32,7 +32,6 @@ class OrderChartFilter(BaseModel):
         "rent_end",
         "phone",
         "location",
-        "description",
         "full_name",
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"

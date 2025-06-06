@@ -1,7 +1,9 @@
 # src/repositories/order_chart.py
+from datetime import date, datetime, time
 from typing import Any, Sequence, Tuple
+from uuid import UUID
 
-from sqlalchemy import Function, Result, Select, func, select
+from sqlalchemy import Function, Label, Result, Select, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +16,18 @@ class OrderChartRepository:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: OrderChartFilter) -> list[OrderChartRead]:
-        stmt: Select[tuple[Any]] = (
+        location_expr: Label[str] = func.concat_ws(
+            ", ",
+            func.coalesce(Address.city, ""),
+            func.coalesce(Address.street, ""),
+            func.coalesce(Address.building, ""),
+        ).label("location")
+
+        full_name_expr: Label[str] = func.concat_ws(
+            " ", func.coalesce(User.first_name, ""), func.coalesce(User.last_name, "")
+        ).label("full_name")
+
+        stmt: Select[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]] = (
             select(
                 Order.id,
                 Order.created_at,
@@ -23,12 +36,9 @@ class OrderChartRepository:
                 Order.window_start,
                 Order.window_end,
                 Client.phone,
-                Address.city,
-                Address.street,
-                Address.building,
+                location_expr,
                 OrderStatus.description,
-                User.first_name,
-                User.last_name,
+                full_name_expr,
             )
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
@@ -38,74 +48,60 @@ class OrderChartRepository:
             .outerjoin(User, User.id == Route.courier_id)
         )
 
-        # 🔍 Поиск
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
-            full_name: Function[str] = func.lower(
-                func.concat_ws(
-                    " ",
-                    func.coalesce(User.first_name, ""),
-                    func.coalesce(User.last_name, ""),
-                )
-            )
-            full_address: Function[str] = func.lower(
-                func.concat_ws(
-                    ", ",
-                    func.coalesce(Address.city, ""),
-                    func.coalesce(Address.street, ""),
-                    func.coalesce(Address.building, ""),
-                )
-            )
+            full_name: Function[Any] = func.lower(full_name_expr)
             stmt = stmt.where(
                 func.lower(Client.phone).like(like)
                 | func.lower(OrderStatus.description).like(like)
+                | func.lower(location_expr).like(like)
                 | full_name.like(like)
-                | full_address.like(like)
             )
 
-        # 📋 Выпадающие фильтры
         if filters.description:
             stmt = stmt.where(OrderStatus.description == filters.description)
-        if filters.first_name:
-            stmt = stmt.where(User.first_name == filters.first_name)
-        if filters.last_name:
-            stmt = stmt.where(User.last_name == filters.last_name)
 
-        # 🕒 Временные рамки
         if filters.window_start_from:
             stmt = stmt.where(Order.window_start >= filters.window_start_from)
         if filters.window_end_to:
             stmt = stmt.where(Order.window_end <= filters.window_end_to)
 
-        # ✅ Только активные (не завершённые и не отменённые)
         if filters.only_active:
             stmt = stmt.where(~OrderStatus.code.in_(["completed", "cancelled"]))
 
-        # ↕️ Сортировка
         field_map = {
             "id": Order.id,
             "created_at": Order.created_at,
             "rent_start": Order.rent_start,
             "rent_end": Order.rent_end,
-            "window_start": Order.window_start,
-            "window_end": Order.window_end,
             "phone": Client.phone,
-            "city": Address.city,
-            "street": Address.street,
-            "building": Address.building,
+            "location": location_expr,
             "description": OrderStatus.description,
-            "first_name": User.first_name,
-            "last_name": User.last_name,
+            "full_name": full_name_expr,
         }
-
-        order_column = field_map.get(filters.order_by, Order.id)
-        stmt = stmt.order_by(order_column.desc() if filters.order_dir == "desc" else order_column.asc())
+        col = field_map.get(filters.order_by, Order.id)
+        stmt = stmt.order_by(col.desc() if filters.order_dir == "desc" else col.asc())
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        result: Result[tuple[Any]] = await self.session.execute(stmt)
-        rows: Sequence[Row[tuple[Any]]] = result.fetchall()
+        result: Result[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]] = await self.session.execute(
+            stmt
+        )
+        rows: Sequence[Row[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]]] = result.fetchall()
 
-        return [OrderChartRead.model_validate(row._asdict()) for row in rows]
+        return [
+            OrderChartRead(
+                id=r.id,
+                created_at=r.created_at,
+                rent_start=r.rent_start,
+                rent_end=r.rent_end,
+                window=f"{r.window_start.strftime('%H:%M')}–{r.window_end.strftime('%H:%M')}",
+                phone=r.phone,
+                location=r.location,
+                description=r.description,
+                full_name=r.full_name if r.full_name else None,
+            )
+            for r in rows
+        ]
 
     async def get_unique_descriptions(self) -> list[str]:
         stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
