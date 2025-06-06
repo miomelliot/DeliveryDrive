@@ -1,4 +1,3 @@
-# src/schemas/routing_chart.py
 from datetime import datetime, time
 from typing import Literal
 from uuid import UUID
@@ -13,10 +12,8 @@ class RoutingChartRead(BaseModel):
     window_start: time
     window_end: time
     phone: str
-    city: str
-    street: str
-    building: str
-    description: str
+    location: str  # объединённый адрес: city, street, building
+    description: str  # статус заказа
 
 
 class RoutingChartFilter(BaseModel):
@@ -26,19 +23,17 @@ class RoutingChartFilter(BaseModel):
         "rent_start",
         "rent_end",
         "phone",
-        "city",
-        "street",
-        "building",
+        "location",
         "description",
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"
 
-    # 🔽 Выпадающий фильтр по имени и описанию статуса
-    description: str | None = None
-    first_name: str | None = None
-    last_name: str | None = None
+    route_id: UUID | None = None
 
-    # 🔽 Фильтрация по диапазону времени окна
+    # 📋 Выпадающий фильтр по статусу заказа
+    description: str | None = None
+
+    # ⏰ Фильтрация по временному окну
     window_start_from: time | None = None
     window_end_to: time | None = None
 
