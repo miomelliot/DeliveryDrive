@@ -19,4 +19,4 @@ async def get_tracking_chart(
     session: AsyncSession = Depends(get_session),
 ) -> TrackingChart:
     repo = TrackingChartRepository(session)
-    return await repo.get_tracking_chart(route_id, filters)
+    return await repo.get_chart(route_id, filters)

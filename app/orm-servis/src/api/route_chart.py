@@ -6,11 +6,11 @@ from src.db.session import get_session
 from src.repositories.route_chart import RouteChartRepository
 from src.schemas.route_chart import RouteChart, RouteChartFilter
 
-router = APIRouter(prefix="/charts/route", tags=["TrackingChart"])
+router = APIRouter(prefix="/charts/route", tags=["RouteChart"])
 
 
 @router.get("/", response_model=list[RouteChart])
-async def get_tracking_chart(
+async def get_route_chart(
     filters: RouteChartFilter = Depends(),
     session: AsyncSession = Depends(get_session),
 ) -> list[RouteChart]:

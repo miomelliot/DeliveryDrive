@@ -17,6 +17,7 @@ from src.db.models import (
     User,
 )
 from src.schemas.route_chart import RouteChart, RouteChartFilter
+from src.utils.sqlalchemy_expr import full_name_expr
 
 
 class RouteChartRepository:
@@ -28,7 +29,7 @@ class RouteChartRepository:
             select(
                 Route.id,
                 Route.date,
-                func.concat_ws(" ", User.first_name, User.last_name).label("full_name"),
+                full_name_expr().label("full_name"),
                 func.count(RouteItem.id).label("count_orders"),
                 func.count(
                     func.distinct(
@@ -53,7 +54,7 @@ class RouteChartRepository:
         # 🔍 Поиск по имени
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
-            stmt = stmt.where(func.lower(func.concat_ws(" ", User.first_name, User.last_name)).like(like))
+            stmt = stmt.where(func.lower(full_name_expr()).like(like))
 
         # ⏱️ Фильтрация по дате
         if filters.date_start:
@@ -65,7 +66,7 @@ class RouteChartRepository:
         field_map = {
             "id": Route.id,
             "date": Route.date,
-            "full_name": func.concat_ws(" ", User.first_name, User.last_name),
+            "full_name": full_name_expr(),
             "count_orders": func.count(RouteItem.id),
         }
         sort_col = field_map.get(filters.order_by, Route.id)

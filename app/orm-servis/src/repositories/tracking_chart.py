@@ -2,7 +2,7 @@
 from typing import Tuple
 from uuid import UUID
 
-from sqlalchemy import Result, Row, func, select
+from sqlalchemy import Result, Row, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
@@ -10,6 +10,7 @@ from src.db.models import Route, User
 from src.repositories.routing_chart import RoutingChartRepository
 from src.schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.schemas.tracking_chart import TrackingChart
+from src.utils.sqlalchemy_expr import full_name_expr
 
 
 class TrackingChartRepository:
@@ -17,7 +18,7 @@ class TrackingChartRepository:
         self.session: AsyncSession = session
         self.routing_repo = RoutingChartRepository(session)
 
-    async def get_tracking_chart(
+    async def get_chart(
         self,
         route_id: UUID,
         filters: RoutingChartFilter,
@@ -26,7 +27,7 @@ class TrackingChartRepository:
         route_stmt: Select[Tuple[UUID, str]] = (
             select(
                 Route.id,
-                func.concat_ws(" ", User.first_name, User.last_name).label("full_name"),
+                full_name_expr().label("full_name"),
             )
             .join(User, User.id == Route.courier_id)
             .where(Route.id == route_id)

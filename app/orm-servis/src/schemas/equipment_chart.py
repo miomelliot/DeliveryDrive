@@ -1,5 +1,5 @@
 # src/schemas/equipment_chart.py
-from datetime import datetime, time
+from datetime import date
 from typing import Literal
 from uuid import UUID
 
@@ -7,43 +7,34 @@ from pydantic import BaseModel, Field
 
 
 class EquipmentChartRead(BaseModel):
-    # Order
+    # Equipment
     id: UUID
-    created_at: datetime
-    rent_start: datetime
-    rent_end: datetime
-    window: str  # HH:MM-HH:MM (window_start_from+window_end_to)
-    # Client
-    phone: str
+    date: date
+    # HeaterType
+    model: str
+    weight: float
+    price: float
     # Address
     location: str  # объединённый адрес: city, street, building
-    # OrderStatus
-    description: str  # статус заказа
-    # User
-    full_name: str | None  # first_name + last_name
+    # EquipmentStatus
+    status: str  # description
 
 
 class EquipmentChartFilter(BaseModel):
     search: str | None = None
     order_by: Literal[
         "id",
-        "created_at",
-        "rent_start",
-        "rent_end",
-        "phone",
+        "model",
+        "weight",
+        "price",
         "location",
-        "full_name",
+        "status",
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"
 
-    # 🔽 Выпадающий фильтр по имени и описанию статуса
-    description: str | None = None
-
-    # 🔽 Фильтрация по диапазону времени окна
-    window_start_from: time | None = None
-    window_end_to: time | None = None
-
-    only_active: bool = True
+    # 🔽 Фильтрация по диапазону дат (логика BETWEEN)
+    date_start: date | None = None
+    date_end: date | None = None
 
     limit: int = Field(default=10, le=100)
     offset: int = 0

@@ -3,12 +3,13 @@ from datetime import date, datetime, time
 from typing import Any, Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import Function, Label, Result, Select, func, select
+from sqlalchemy import Function, Result, Select, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address, Client, Order, OrderStatus, Route, RouteItem, User
 from src.schemas.order_chart import OrderChartFilter, OrderChartRead
+from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 
 class OrderChartRepository:
@@ -16,17 +17,6 @@ class OrderChartRepository:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: OrderChartFilter) -> list[OrderChartRead]:
-        location_expr: Label[str] = func.concat_ws(
-            ", ",
-            func.coalesce(Address.city, ""),
-            func.coalesce(Address.street, ""),
-            func.coalesce(Address.building, ""),
-        ).label("location")
-
-        full_name_expr: Label[str] = func.concat_ws(
-            " ", func.coalesce(User.first_name, ""), func.coalesce(User.last_name, "")
-        ).label("full_name")
-
         stmt: Select[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]] = (
             select(
                 Order.id,
@@ -36,9 +26,9 @@ class OrderChartRepository:
                 Order.window_start,
                 Order.window_end,
                 Client.phone,
-                location_expr,
+                location_expr().label("location"),
                 OrderStatus.description,
-                full_name_expr,
+                full_name_expr().label("full_name"),
             )
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
@@ -50,11 +40,11 @@ class OrderChartRepository:
 
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
-            full_name: Function[Any] = func.lower(full_name_expr)
+            full_name: Function[Any] = func.lower(full_name_expr())
             stmt = stmt.where(
                 func.lower(Client.phone).like(like)
                 | func.lower(OrderStatus.description).like(like)
-                | func.lower(location_expr).like(like)
+                | func.lower(location_expr()).like(like)
                 | full_name.like(like)
             )
 
@@ -75,9 +65,9 @@ class OrderChartRepository:
             "rent_start": Order.rent_start,
             "rent_end": Order.rent_end,
             "phone": Client.phone,
-            "location": location_expr,
+            "location": location_expr(),
             "description": OrderStatus.description,
-            "full_name": full_name_expr,
+            "full_name": full_name_expr(),
         }
         col = field_map.get(filters.order_by, Order.id)
         stmt = stmt.order_by(col.desc() if filters.order_dir == "desc" else col.asc())
