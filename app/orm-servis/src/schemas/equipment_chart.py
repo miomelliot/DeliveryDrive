@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 class EquipmentChartRead(BaseModel):
     # Equipment
     id: UUID
+    # Maintenance
     date: date
     # HeaterType
     model: str

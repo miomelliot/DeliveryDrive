@@ -79,6 +79,7 @@ class EventType(Base):
     code: Mapped[str] = mapped_column(Text, unique=True)
     description: Mapped[str] = mapped_column(Text)
 
+
 # Тип водонагревателя
 class HeaterType(Base):
     __tablename__ = "heater_type"
@@ -193,6 +194,7 @@ class Equipment(Base):
     status: Mapped[EquipmentStatus] = relationship()
     warehouse: Mapped[Warehouse] = relationship()
     current_address: Mapped[Address] = relationship()
+
 
 # Обслуживание
 class Maintenance(Base):

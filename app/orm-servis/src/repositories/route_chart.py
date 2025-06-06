@@ -1,6 +1,6 @@
 # src/repositories/route_chart.py
 from datetime import date
-from typing import Any, Literal, Sequence, Tuple
+from typing import Sequence, Tuple
 from uuid import UUID
 
 from sqlalchemy import Result, func, select
@@ -79,20 +79,13 @@ class RouteChartRepository:
         rows: Sequence[Row[Tuple[UUID, date, str, int, int]]] = res.fetchall()
 
         # 📦 Преобразование в Pydantic
-        result: list[RouteChart] = []
-        for row in rows:
-            completed: Any | Literal[0] = row.completed_orders or 0
-            total: Any | Literal[1] = row.count_orders or 1  # защита от деления на 0
-            percent: int = round(completed / total * 100)
-
-            result.append(
-                RouteChart(
-                    id=row.id,
-                    date=row.date,
-                    full_name=row.full_name,
-                    count_orders=row.count_orders,
-                    status=percent,
-                )
+        return [
+            RouteChart(
+                id=r[0],
+                date=r[1],
+                full_name=r[2],
+                count_orders=r[3],
+                status=round((r[4] or 0) / (r[3] or 1) * 100),  # safe division
             )
-
-        return result
+            for r in rows
+        ]

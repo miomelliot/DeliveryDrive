@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address, Client, Order, OrderStatus, Route, RouteItem, User
 from src.schemas.order_chart import OrderChartFilter, OrderChartRead
+from src.utils.formatters import format_time_range
 from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 
@@ -84,7 +85,7 @@ class OrderChartRepository:
                 created_at=r.created_at,
                 rent_start=r.rent_start,
                 rent_end=r.rent_end,
-                window=f"{r.window_start.strftime('%H:%M')}–{r.window_end.strftime('%H:%M')}",
+                window=format_time_range(r.window_start, r.window_end),
                 phone=r.phone,
                 location=r.location,
                 description=r.description,
@@ -100,11 +101,7 @@ class OrderChartRepository:
 
     async def get_unique_full_names(self) -> list[str]:
         stmt: Select[Tuple[str]] = (
-            select(
-                func.distinct(
-                    func.concat_ws(" ", func.coalesce(User.first_name, ""), func.coalesce(User.last_name, ""))
-                ).label("full_name")
-            )
+            select(full_name_expr())
             .select_from(Order)
             .join(RouteItem, RouteItem.order_id == Order.id)
             .join(Route, Route.id == RouteItem.route_id)

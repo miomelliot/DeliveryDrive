@@ -1,6 +1,6 @@
 # src/repositories/routing_chart.py
 from datetime import date, time
-from typing import Any, Dict, Sequence, Tuple
+from typing import Sequence, Tuple
 from uuid import UUID
 
 from sqlalchemy import Result, func, select
@@ -10,6 +10,7 @@ from sqlalchemy.sql import Select
 
 from src.db.models import Address, Client, Order, OrderStatus, RouteItem
 from src.schemas.routing_chart import RoutingChartFilter, RoutingChartRead
+from src.utils.formatters import format_time_range
 from src.utils.sqlalchemy_expr import location_expr
 
 
@@ -18,7 +19,6 @@ class RoutingChartRepository:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: RoutingChartFilter) -> list[RoutingChartRead]:
-        # 🏗️ Базовый запрос
         stmt: Select[Tuple[UUID, date, date, time, time, str, str, str]] = (
             select(
                 Order.id,
@@ -35,12 +35,10 @@ class RoutingChartRepository:
             .join(OrderStatus, OrderStatus.id == Order.status_id)
         )
 
-        # 🔗 Фильтрация по маршруту
         if filters.route_id:
             stmt = stmt.join(RouteItem, RouteItem.order_id == Order.id)
             stmt = stmt.where(RouteItem.route_id == filters.route_id)
 
-        # 🔍 Поиск
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
             stmt = stmt.where(
@@ -49,21 +47,17 @@ class RoutingChartRepository:
                 | func.lower(location_expr()).like(like)
             )
 
-        # 📋 Фильтрация по статусу
         if filters.description:
             stmt = stmt.where(OrderStatus.description == filters.description)
 
-        # 🕒 Временные окна
         if filters.window_start_from:
             stmt = stmt.where(Order.window_start >= filters.window_start_from)
         if filters.window_end_to:
             stmt = stmt.where(Order.window_end <= filters.window_end_to)
 
-        # ✅ Только активные
         if filters.only_active:
             stmt = stmt.where(~OrderStatus.code.in_(["completed", "cancelled"]))
 
-        # ↕️ Сортировка
         field_map = {
             "id": Order.id,
             "rent_start": Order.rent_start,
@@ -74,34 +68,27 @@ class RoutingChartRepository:
             "location": location_expr(),
             "description": OrderStatus.description,
         }
-        col = field_map.get(filters.order_by, Order.id)
-        stmt = stmt.order_by(col.desc() if filters.order_dir == "desc" else col.asc())
+        sort_col = field_map.get(filters.order_by, Order.id)
+        stmt = stmt.order_by(sort_col.desc() if filters.order_dir == "desc" else sort_col.asc())
 
-        # 📄 Пагинация
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        # 🧾 Выполнение
         res: Result[Tuple[UUID, date, date, time, time, str, str, str]] = await self.session.execute(stmt)
         rows: Sequence[Row[Tuple[UUID, date, date, time, time, str, str, str]]] = res.fetchall()
 
-        # 🧠 Формирование ответа
-        result: list[RoutingChartRead] = []
-        for row in rows:
-            d: Dict[str, Any] = row._asdict()
-            window_range: str = f"{d['window_start'].strftime('%H:%M')}–{d['window_end'].strftime('%H:%M')}"
-            result.append(
-                RoutingChartRead(
-                    id=d["id"],
-                    rent_start=d["rent_start"],
-                    rent_end=d["rent_end"],
-                    window=window_range,
-                    phone=d["phone"],
-                    location=d["location"],
-                    description=d["description"],
-                )
+        # 🔄 Преобразуем к нужному виду (с window)
+        return [
+            RoutingChartRead(
+                id=r[0],
+                rent_start=r[1],
+                rent_end=r[2],
+                window=format_time_range(r[3], r[4]),
+                phone=r[5],
+                location=r[6],
+                description=r[7],
             )
-
-        return result
+            for r in rows
+        ]
 
     async def get_unique_descriptions(self) -> list[str]:
         stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
