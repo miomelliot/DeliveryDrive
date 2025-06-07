@@ -18,7 +18,7 @@ class OrderChartRead(BaseModel):
     # Address
     location: str  # объединённый адрес: city, street, building
     # OrderStatus
-    description: str  # статус заказа
+    status: str  # статус заказа
     # User
     full_name: str | None  # first_name + last_name
 
@@ -32,13 +32,13 @@ class OrderChartFilter(BaseModel):
         "rent_end",
         "phone",
         "location",
-        "description",
+        "status",
         "full_name",
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"
 
     # 🔽 Выпадающий фильтр по имени и описанию статуса
-    description: str | None = None
+    status: str | None = None
 
     # 🔽 Фильтрация по диапазону времени окна
     window_start_from: time | None = None

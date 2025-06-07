@@ -28,7 +28,7 @@ class OrderChartRepository:
                 Order.window_end,
                 Client.phone,
                 location_expr().label("location"),
-                OrderStatus.description,
+                OrderStatus.description.label("status"),
                 full_name_expr().label("full_name"),
             )
             .join(Client, Client.id == Order.client_id)
@@ -49,8 +49,8 @@ class OrderChartRepository:
                 | full_name.like(like)
             )
 
-        if filters.description:
-            stmt = stmt.where(OrderStatus.description == filters.description)
+        if filters.status:
+            stmt = stmt.where(OrderStatus.description == filters.status)
 
         if filters.window_start_from:
             stmt = stmt.where(Order.window_start >= filters.window_start_from)
@@ -67,7 +67,7 @@ class OrderChartRepository:
             "rent_end": Order.rent_end,
             "phone": Client.phone,
             "location": location_expr(),
-            "description": OrderStatus.description,
+            "status": OrderStatus.description,
             "full_name": full_name_expr(),
         }
         col = field_map.get(filters.order_by, Order.id)
@@ -88,7 +88,7 @@ class OrderChartRepository:
                 window=format_time_range(r.window_start, r.window_end),
                 phone=r.phone,
                 location=r.location,
-                description=r.description,
+                status=r.status,
                 full_name=r.full_name if r.full_name else None,
             )
             for r in rows

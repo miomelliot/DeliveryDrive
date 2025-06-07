@@ -255,6 +255,7 @@ class Transport(Base):
 
 
 # ─────────────── Finance ───────────────
+# счёт
 class Invoice(Base):
     __tablename__ = "invoice"
 
