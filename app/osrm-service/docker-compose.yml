@@ -1,0 +1,10 @@
+
+services:
+  osrm:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    environment:
+      - MAP_NAME=planet_37.369,55.517_37.823,55.889.osm.pbf
