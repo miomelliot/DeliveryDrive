@@ -36,4 +36,4 @@ def tests(session: nox.Session) -> None:
 @nox.session(reuse_venv=True)
 def serve(session: nox.Session) -> None:
     session.install(".")
-    session.run("uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "9090", external=True)
+    session.run("uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080", external=True)
