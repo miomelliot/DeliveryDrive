@@ -17,10 +17,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Теперь копируем код
 COPY app/orm-server/src ./src
-COPY app/shared ./src/shared
-
-# (опционально) Проверим, что stubs появились
-RUN ls src/shared/grpc_stubs
+RUN mkdir -p ./static/icons
 
 ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uv", "run", "src/run_grpc.py"]

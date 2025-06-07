@@ -2,7 +2,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, FilePath
 
 
 class OrderItemChart(BaseModel):
@@ -31,7 +31,7 @@ class OrderDetailRead(BaseModel):
     invoice_status: str
     invoice_issued_at: date | None
     invoice_paid_at: date | None
-    contract_file_path: str | None
+    contract_file_path: FilePath | None
     comment: str | None
     items: list[OrderItemChart]
     history: list[OrderHistoryChart]

@@ -280,6 +280,7 @@ class OrderHistory(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
 
 
+# График работы курьера
 class CourierSchedule(Base):
     __tablename__ = "courier_schedule"
 
