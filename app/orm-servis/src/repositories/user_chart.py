@@ -1,14 +1,15 @@
 # src/repositories/user_chart.py
 from datetime import time
-from typing import Any, Sequence, Tuple
+from typing import Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import Label, Result, Select, func, select
+from sqlalchemy import Result, Select, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import CourierSchedule, Transport, TransportType, User
 from src.schemas.user_chart import UserChartFilter, UserChartRead
+from src.utils.sqlalchemy_expr import full_name_expr
 
 
 class UserChartRepository:
@@ -16,12 +17,12 @@ class UserChartRepository:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: UserChartFilter) -> list[UserChartRead]:
-        full_name_expr: Label[Any] = func.concat_ws(" ", User.first_name, User.last_name).label("full_name")
+        # full_name_expr: Label[Any] = func.concat_ws(" ", User.first_name, User.last_name).label("full_name")
 
         stmt: Select[Tuple[UUID, str, str, str, str, time, time]] = (
             select(
                 User.id,
-                full_name_expr,
+                full_name_expr().label("full_name"),
                 User.phone,
                 User.email,
                 TransportType.name.label("transport_name"),
@@ -53,7 +54,7 @@ class UserChartRepository:
         # ↕️ Сортировка
         field_map = {
             "id": User.id,
-            "full_name": full_name_expr,
+            "full_name": full_name_expr(),
             "phone": User.phone,
             "email": User.email,
             "transport_name": TransportType.name,
