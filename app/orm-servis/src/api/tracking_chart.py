@@ -9,7 +9,7 @@ from src.repositories.tracking_chart import TrackingChartRepository
 from src.schemas.routing_chart import RoutingChartFilter
 from src.schemas.tracking_chart import TrackingChart
 
-router = APIRouter(prefix="/charts/tracking", tags=["TrackingChart"])
+router = APIRouter(prefix="/charts/tracking", tags=["Tracking Chart"])
 
 
 @router.get("/", response_model=TrackingChart)

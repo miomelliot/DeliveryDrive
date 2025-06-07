@@ -6,7 +6,7 @@ from src.db.session import get_session
 from src.repositories.user_chart import UserChartRepository
 from src.schemas.user_chart import UserChartFilter, UserChartRead
 
-router = APIRouter(prefix="/charts/users", tags=["User Charts"])
+router = APIRouter(prefix="/charts/users", tags=["User Chart"])
 
 
 @router.get("/", response_model=list[UserChartRead])

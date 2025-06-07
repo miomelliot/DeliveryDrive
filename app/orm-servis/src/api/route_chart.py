@@ -6,7 +6,7 @@ from src.db.session import get_session
 from src.repositories.route_chart import RouteChartRepository
 from src.schemas.route_chart import RouteChart, RouteChartFilter
 
-router = APIRouter(prefix="/charts/route", tags=["RouteChart"])
+router = APIRouter(prefix="/charts/route", tags=["Route Chart"])
 
 
 @router.get("/", response_model=list[RouteChart])
