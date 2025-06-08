@@ -1,123 +1,118 @@
-# # src/db/init_db.py
-# from __future__ import annotations
+# src/db/init_db.py
+import asyncio
+from typing import Any, Sequence, Tuple
 
-# import asyncio
-# from typing import Any, Sequence
+from sqlalchemy import Select, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# import typer
-# from passlib.hash import bcrypt
-# from sqlalchemy import select
-# from sqlalchemy.ext.asyncio import AsyncSession
-# from uuid6 import uuid7
+from src.core.security import hash_password
+from src.db.models import (
+    Base,
+    EquipmentStatus,
+    EventType,
+    InvoiceStatus,
+    OrderStatus,
+    Role,
+    TransportType,
+    User,
+)
+from src.db.session import AsyncSessionFactory, engine
 
-# from core.config import Settings
-# from src.core.config import get_settings
-# from src.db.models import (
-#     Base,
-#     EquipmentStatus,
-#     EventType,
-#     HeaterType,
-#     InvoiceStatus,
-#     OrderStatus,
-#     Role,
-#     TransportType,
-#     User,
-# )
-# from src.db.session import AsyncSessionFactory, engine
-
-# app = typer.Typer(help="DB bootstrap & seed utility")
-
-# # ---- справочники по умолчанию ------------------------------------------------
-# REF_DATA: dict[Any, list[dict[str, str | int | float]]] = {
-#     Role: [
-#         {"id": 1, "name": "admin"},
-#         {"id": 2, "name": "courier"},
-#         {"id": 3, "name": "manager"},
-#     ],
-#     OrderStatus: [
-#         {"id": 1, "code": "new", "description": "Создан"},
-#         {"id": 2, "code": "in_progress", "description": "В работе"},
-#         {"id": 3, "code": "done", "description": "Выполнен"},
-#     ],
-#     EquipmentStatus: [
-#         {"id": 1, "code": "ready", "description": "Готов к аренде"},
-#         {"id": 2, "code": "maintenance", "description": "Требует ТО"},
-#     ],
-#     InvoiceStatus: [
-#         {"id": 1, "code": "unpaid", "description": "Не оплачен"},
-#         {"id": 2, "code": "paid", "description": "Оплачен"},
-#     ],
-#     EventType: [
-#         {"id": 1, "code": "pickup", "description": "Забор"},
-#         {"id": 2, "code": "delivery", "description": "Доставка"},
-#     ],
-#     HeaterType: [
-#         {"id": 1, "model": "HX-500", "price": 199.99, "weight": 12.5},
-#     ],
-#     TransportType: [
-#         {"id": 1, "name": "van", "avg_speed": 60, "capacity": 1.5},
-#     ],
-# }
-
-
-# # ---- helpers -----------------------------------------------------------------
-# async def _ensure_ref_data(session: AsyncSession) -> None:
-#     """Вставляет данные REF_DATA, если их ещё нет."""
-#     for model_cls, rows in REF_DATA.items():
-#         present: Sequence[Any] = (await session.scalars(select(model_cls.id))).all()
-#         if present:
-#             # таблица уже не пуста — пропускаем
-#             continue
-#         session.add_all(model_cls(**row) for row in rows)
-#     await session.flush()
+# ─────────── справочные наборы ───────────
+ROLES: Sequence[tuple[int, str]] = [
+    (1, "admin"),
+    (2, "manager"),
+    (3, "courier"),
+]
+ORDER_STATUSES: list[tuple[int, str, str]] = [
+    (1, "new", "Новый"),
+    (2, "scheduled", "Запланирован"),
+    (3, "on_delivery", "В доставке"),
+    (4, "in_rent", "В аренде"),
+    (5, "completed", "Завершён"),
+    (6, "cancelled", "Отменён"),
+    (7, "in_processing", "В обработке"),
+]
+EQUIPMENT_STATUSES: list[tuple[int, str, str]] = [
+    (1, "rented", "В аренде"),
+    (2, "maintenance", "На обслуживании"),
+    (3, "available", "Доступно"),
+    (4, "decommissioned", "Списано"),
+]
+INVOICE_STATUSES: list[tuple[int, str, str]] = [
+    (1, "issued", "Выставлен"),
+    (2, "paid", "Оплачен"),
+    (3, "not_paid", "Не оплачен"),
+]
+EVENT_TYPES: list[tuple[int, str, str]] = [
+    (1, "route_assigned", "Маршрут назначен"),
+    (2, "departed", "Выезд"),
+    (3, "arrived", "Прибытие"),
+    (4, "installed", "Монтаж завершён"),
+    (5, "picked_up", "Демонтаж завершён"),
+]
+TRANSPORT_TYPES: list[tuple[int, str, float, float]] = [
+    (1, "walk", 5.0, 10.0),
+    (2, "bike", 15.0, 15.0),
+    (3, "scooter", 25.0, 25.0),
+    (4, "car", 40.0, 300.0),
+    (5, "van", 35.0, 800.0),
+]
 
 
-# async def _ensure_admin(session: AsyncSession) -> None:
-#     """Создаёт пользователя-админа, если его нет."""
-#     settings: Settings = get_settings()
-#     admin_email = "root@localhost"
-#     admin_pwd = "root"  # в проде передаём через ENV
-
-#     # роль «admin» точно есть после _ensure_ref_data
-#     admin_role_id = 1
-
-#     exists: User | None = await session.scalar(select(User).where(User.email == admin_email))
-#     if exists:
-#         return
-
-#     pwd_hash: str = bcrypt.hash(admin_pwd)
-#     admin = User(
-#         id=uuid7(),
-#         first_name="Root",
-#         last_name="User",
-#         email=admin_email,
-#         phone="+10000000000",
-#         avatar_path=None,
-#         password_hash=pwd_hash,
-#         role_id=admin_role_id,
-#     )
-#     session.add(admin)
-#     typer.echo(f"👑 Admin {admin_email}:{admin_pwd} создан.")
+# ─────────── универсальные апсерты ───────────
+async def _upsert_simple(session: AsyncSession, model: Any, items: list[Any]) -> None:
+    for item in items:
+        stmt: Select[Tuple[Any]] = select(model).where(model.id == item[0])
+        if not await session.scalar(stmt):
+            session.add(model(id=item[0], code=item[1], description=item[2]))
 
 
-# # ---- main entry --------------------------------------------------------------
-# async def init_db() -> None:
-#     async with engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
-
-#     async with AsyncSessionFactory() as session:
-#         await _ensure_ref_data(session)
-#         await _ensure_admin(session)
-#         await session.commit()
-
-#     typer.echo("✅ База готова и засидирована.")
+async def _upsert_roles(session: AsyncSession) -> None:
+    for role_id, name in ROLES:
+        if not await session.scalar(select(Role).where(Role.id == role_id)):
+            session.add(Role(id=role_id, name=name))
 
 
-# @app.command()
-# def run() -> None:
-#     """Инициализирует БД и заливает дефолтные данные."""
-#     asyncio.run(init_db())
+async def _upsert_transport(session: AsyncSession) -> None:
+    for i, name, speed, capacity in TRANSPORT_TYPES:
+        if not await session.scalar(select(TransportType).where(TransportType.id == i)):
+            session.add(TransportType(id=i, name=name, avg_speed=speed, capacity=capacity))
 
 
-# if __name__ == "__main__":
-#     app()
+async def _create_admin(session: AsyncSession) -> None:
+    admin_email = "admin@example.com"
+    if await session.scalar(select(User).where(User.email == admin_email)):
+        return
+    session.add(
+        User(
+            first_name="Админ",
+            last_name="Системы",
+            phone="+70000000000",
+            email=admin_email,
+            password_hash=hash_password("admin"),
+            role_id=1,
+        )
+    )
+
+
+# ─────────── точка входа ───────────
+async def init_db() -> None:
+    # создаём таблицы (если ещё нет)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # наполняем справочники и создаём админа
+    async with AsyncSessionFactory() as session:
+        await _upsert_roles(session)
+        await _upsert_simple(session, OrderStatus, ORDER_STATUSES)
+        await _upsert_simple(session, EquipmentStatus, EQUIPMENT_STATUSES)
+        await _upsert_simple(session, InvoiceStatus, INVOICE_STATUSES)
+        await _upsert_simple(session, EventType, EVENT_TYPES)
+        await _upsert_transport(session)
+        await _create_admin(session)
+        await session.commit()
+
+
+if __name__ == "__main__":
+    asyncio.run(init_db())
