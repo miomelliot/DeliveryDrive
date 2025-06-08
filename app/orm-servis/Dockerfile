@@ -7,18 +7,16 @@ ENV TZ=Europe/Moscow \
     PYTHONUNBUFFERED=1
 
 # Копируем только то, что нужно для зависимостей
-COPY app/orm-server/pyproject.toml .
-COPY app/orm-server/uv.lock .
-
-# Устанавливаем зависимости (с проектом!), без dev-зависимостей
+COPY pyproject.toml .
+COPY uv.lock .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
-# ТУТ УБРАЛИ --no-install-project, UV поставил и твой пакет — плагин-grpc отработал
 
-# Теперь копируем код
-COPY app/orm-server/src ./src
+# исходники
+COPY src ./src
+COPY static ./static
 RUN mkdir -p ./static/icons
-COPY app/orm-servis/static ./static
 
 ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uv", "run", "src/run_grpc.py"]
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
