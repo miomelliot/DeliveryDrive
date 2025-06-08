@@ -21,6 +21,7 @@ services:
     depends_on: [db]
     restart: unless-stopped
     environment:
+    
       POSTGRES_USER:     deliverydrive
       POSTGRES_PASSWORD: deliverydrive
       POSTGRES_HOST:     db

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
-from src.repositories.user import UserCourierRepository, UserManagerRepository
+from src.repositories.user import UserBaseRepository, UserCourierRepository, UserManagerRepository
 from src.schemas.user import (
     UserCourierCreate,
     UserCourierRead,
@@ -123,6 +123,11 @@ async def get_courier(user_id: UUID, session: AsyncSession = Depends(get_session
 
 # ─────────────────────────── DELETE ───────────────────────────
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
-    """Удалить любого пользователя по ID."""
-    await UserManagerRepository(session).delete(user_id)
+async def delete_user(
+    user_id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Удалить любого пользователя по ID (404, если не найден)."""
+    deleted: bool = await UserBaseRepository(session).delete(user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")

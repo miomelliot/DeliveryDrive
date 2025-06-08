@@ -1,12 +1,12 @@
-# src/schemas/user.py
 from datetime import time
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-# ─────────────────────── Base Schemas ───────────────────────
-class UserBase(BaseModel):
+# ----- базовые -----
+class _UserInBase(BaseModel):  # <-- без id, используется для CREATE/UPDATE
     first_name: str
     last_name: str | None
     phone: str
@@ -14,7 +14,23 @@ class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserUpdateBase(BaseModel):
+class _UserOutBase(_UserInBase):  # <-- с id, используется для READ
+    id: UUID
+
+
+# ----- input -----
+class UserManagerCreate(_UserInBase):
+    password: str
+
+
+class UserCourierCreate(_UserInBase):
+    password: str
+    start_time: time = time(hour=9)
+    end_time: time = time(hour=18)
+    transport_name: Literal["walk", "bike", "scooter", "car", "van"] = "walk"
+
+
+class _UserUpdateBase(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     phone: str | None = None
@@ -23,39 +39,22 @@ class UserUpdateBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ─────────────────────── Create Schemas ───────────────────────
-class UserManagerCreate(UserBase):
-    password: str
-    # icon: UploadFile
-
-
-class UserCourierCreate(UserBase):
-    password: str
-    start_time: time = time(hour=9, minute=0)
-    end_time: time = time(hour=18, minute=0)
-    transport_name: Literal["walk", "bike", "scooter", "car", "van"] = "walk"
-    # icon: UploadFile
-
-
-# ─────────────────────── Update Schemas ───────────────────────
-class UserManagerUpdate(UserUpdateBase):
+class UserManagerUpdate(_UserUpdateBase):
     pass
-    # icon: UploadFile
 
 
-class UserCourierUpdate(UserUpdateBase):
+class UserCourierUpdate(_UserUpdateBase):
     start_time: time | None = None
     end_time: time | None = None
     transport_name: Literal["walk", "bike", "scooter", "car", "van"] | None = None
-    # icon: UploadFile
 
 
-# ─────────────────────── Read Schemas ───────────────────────
-class UserManagerRead(UserBase):
+# ----- output -----
+class UserManagerRead(_UserOutBase):
     icon: str | None = Field(None, alias="avatar_path")
 
 
-class UserCourierRead(UserBase):
+class UserCourierRead(_UserOutBase):
     icon: str | None = Field(None, alias="avatar_path")
     start_time: time
     end_time: time

@@ -26,8 +26,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from uuid6 import uuid7
 
 
-class Base(DeclarativeBase):
-    """Declarative base for all models."""
+class Base(DeclarativeBase): ...
 
 
 # единый столбец-шаблон для UUID v7
@@ -40,17 +39,15 @@ def uuid_pk() -> Mapped[UUID]:
     )
 
 
-# ──────────────── Reference / Lookup ────────────────
+# ──────────────── Reference ────────────────
 class Role(Base):
     __tablename__ = "role"
-
     id: Mapped[int] = mapped_column("role_id", Integer, primary_key=True)
     name: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
 
 
 class OrderStatus(Base):
     __tablename__ = "order_status"
-
     id: Mapped[int] = mapped_column("status_id", Integer, primary_key=True)
     code: Mapped[str] = mapped_column(Text, unique=True)
     description: Mapped[str] = mapped_column(Text)
@@ -58,7 +55,6 @@ class OrderStatus(Base):
 
 class EquipmentStatus(Base):
     __tablename__ = "equipment_status"
-
     id: Mapped[int] = mapped_column("equipment_status_id", Integer, primary_key=True)
     code: Mapped[str] = mapped_column(Text, unique=True)
     description: Mapped[str] = mapped_column(Text)
@@ -66,7 +62,6 @@ class EquipmentStatus(Base):
 
 class InvoiceStatus(Base):
     __tablename__ = "invoice_status"
-
     id: Mapped[int] = mapped_column("invoice_status_id", Integer, primary_key=True)
     code: Mapped[str] = mapped_column(Text, unique=True)
     description: Mapped[str] = mapped_column(Text)
@@ -74,16 +69,13 @@ class InvoiceStatus(Base):
 
 class EventType(Base):
     __tablename__ = "event_type"
-
     id: Mapped[int] = mapped_column("event_type_id", Integer, primary_key=True)
     code: Mapped[str] = mapped_column(Text, unique=True)
     description: Mapped[str] = mapped_column(Text)
 
 
-# Тип водонагревателя
 class HeaterType(Base):
     __tablename__ = "heater_type"
-
     id: Mapped[int] = mapped_column("heater_type_id", Integer, primary_key=True)
     model: Mapped[str] = mapped_column(Text)
     price: Mapped[float] = mapped_column(Float)
@@ -92,14 +84,13 @@ class HeaterType(Base):
 
 class TransportType(Base):
     __tablename__ = "transport_type"
-
     id: Mapped[int] = mapped_column("transport_type_id", Integer, primary_key=True)
     name: Mapped[str] = mapped_column(Text)
     avg_speed: Mapped[float] = mapped_column(Float)
     capacity: Mapped[float] = mapped_column(Float)
 
 
-# ──────────────── Users & Locations ────────────────
+# ──────────────── Users ────────────────
 class User(Base):
     __tablename__ = "user"
 
@@ -111,21 +102,18 @@ class User(Base):
     avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str] = mapped_column(Text)
 
-    role_id: Mapped[int] = mapped_column(
-        ForeignKey(Role.id, ondelete="RESTRICT"),
-    )
+    role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="RESTRICT"))
     role: Mapped[Role] = relationship()
 
-    notifications: Mapped[list["Notification"]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
+    notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    transports: Mapped[list["Transport"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
+    schedules: Mapped[list["CourierSchedule"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
+    routes: Mapped[list["Route"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
 
 
-# адрес
+# ─────────────── Address / Warehouse ───────────────
 class Address(Base):
     __tablename__ = "address"
-
     id: Mapped[UUID] = uuid_pk()
     street: Mapped[str | None] = mapped_column(Text, nullable=True)
     building: Mapped[str] = mapped_column(Text)
@@ -136,81 +124,86 @@ class Address(Base):
 
 class Warehouse(Base):
     __tablename__ = "warehouse"
-
     id: Mapped[UUID] = uuid_pk()
-    address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="RESTRICT"))
+    address_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Address.id, ondelete="CASCADE")  # CASCADE
+    )
     address: Mapped[Address] = relationship()
 
 
-# ────────────────── Clients & Orders ──────────────────
+# ─────────────── Client / Order ───────────────
 class Client(Base):
     __tablename__ = "client"
-
     id: Mapped[UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(Text)
     phone: Mapped[str] = mapped_column(Text)
-    address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id))
+    address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="SET NULL"))
     address: Mapped[Address] = relationship()
 
 
 class Order(Base):
     __tablename__ = "order"
-
     id: Mapped[UUID] = uuid_pk()
-    client_id: Mapped[UUID] = mapped_column(ForeignKey(Client.id))
+    client_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Client.id, ondelete="CASCADE")  # CASCADE при удалении клиента
+    )
     created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     window_start: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
     window_end: Mapped[dt_time] = mapped_column(Time, default=time(21, 0))
     rent_start: Mapped[dt_date] = mapped_column(Date)
     rent_end: Mapped[dt_date] = mapped_column(Date)
+
     status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     client: Mapped[Client] = relationship()
     status: Mapped[OrderStatus] = relationship()
 
+    items: Mapped[list["OrderItem"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
+    contract: Mapped["Contract"] = relationship(cascade="all, delete-orphan", passive_deletes=True, uselist=False)
+    invoices: Mapped[list["Invoice"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
+
 
 class Contract(Base):
     __tablename__ = "contract"
-
     id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"), unique=True)
     file_path: Mapped[str] = mapped_column(Text)
     order: Mapped[Order] = relationship()
 
 
-# ─────────────────── Equipment ───────────────────
+# ─────────────── Equipment ───────────────
 class Equipment(Base):
     __tablename__ = "equipment"
-
     id: Mapped[UUID] = uuid_pk()
     heater_type_id: Mapped[int] = mapped_column(ForeignKey(HeaterType.id))
     serial_number: Mapped[str] = mapped_column(Text, unique=True)
     equipment_status_id: Mapped[int] = mapped_column(ForeignKey(EquipmentStatus.id))
-    warehouse_id: Mapped[UUID] = mapped_column(ForeignKey(Warehouse.id))
-    current_address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id))
-
+    warehouse_id: Mapped[UUID] = mapped_column(ForeignKey(Warehouse.id, ondelete="SET NULL"))
+    current_address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="SET NULL"))
     heater_type: Mapped[HeaterType] = relationship()
     status: Mapped[EquipmentStatus] = relationship()
     warehouse: Mapped[Warehouse] = relationship()
     current_address: Mapped[Address] = relationship()
+    maintenance: Mapped[list["Maintenance"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
 
 
-# Обслуживание
 class Maintenance(Base):
     __tablename__ = "maintenance"
-
     id: Mapped[UUID] = uuid_pk()
-    equipment_id: Mapped[UUID] = mapped_column(ForeignKey(Equipment.id))
+    equipment_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Equipment.id, ondelete="CASCADE")  # CASCADE
+    )
     date: Mapped[dt_date] = mapped_column(Date)
 
 
-# ───────────── Order Composition ─────────────
+# ───────────── OrderItem ─────────────
 class OrderItem(Base):
     __tablename__ = "order_item"
-
     id: Mapped[UUID] = uuid_pk()
-    order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"))
+    order_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Order.id, ondelete="CASCADE")  # CASCADE
+    )
     heater_type_id: Mapped[int] = mapped_column(ForeignKey(HeaterType.id))
     quantity: Mapped[int] = mapped_column(Integer)
 
@@ -218,83 +211,91 @@ class OrderItem(Base):
 # ─────────────── Logistics ───────────────
 class Route(Base):
     __tablename__ = "route"
-
     id: Mapped[UUID] = uuid_pk()
-    courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
+    courier_id: Mapped[UUID] = mapped_column(
+        ForeignKey(User.id, ondelete="CASCADE")  # CASCADE
+    )
     date: Mapped[dt_date] = mapped_column(Date)
     planned_start: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
+    items: Mapped[list["RouteItem"]] = relationship(cascade="all, delete-orphan", passive_deletes=True)
 
 
-# элемент_маршрута
 class RouteItem(Base):
     __tablename__ = "route_item"
     __table_args__ = (UniqueConstraint("route_id", "sequence", name="uq_route_sequence"),)
-
     id: Mapped[UUID] = uuid_pk()
-    route_id: Mapped[UUID] = mapped_column(ForeignKey(Route.id, ondelete="CASCADE"))
-    order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
+    route_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Route.id, ondelete="CASCADE")  # CASCADE
+    )
+    order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="SET NULL"))
     sequence: Mapped[int] = mapped_column(Integer)
 
 
 class Tracking(Base):
     __tablename__ = "tracking"
-
     id: Mapped[UUID] = uuid_pk()
-    route_item_id: Mapped[UUID] = mapped_column(ForeignKey(RouteItem.id))
+    route_item_id: Mapped[UUID] = mapped_column(
+        ForeignKey(RouteItem.id, ondelete="CASCADE")  # CASCADE
+    )
     event_type_id: Mapped[int] = mapped_column(ForeignKey(EventType.id))
     event_time: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
 
 
 class Transport(Base):
     __tablename__ = "transport"
-
     id: Mapped[UUID] = uuid_pk()
-    courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
+    courier_id: Mapped[UUID] = mapped_column(
+        ForeignKey(User.id, ondelete="CASCADE")  # CASCADE
+    )
     transport_type_id: Mapped[int] = mapped_column(ForeignKey(TransportType.id))
 
 
 # ─────────────── Finance ───────────────
-# счёт
 class Invoice(Base):
     __tablename__ = "invoice"
-
     id: Mapped[UUID] = uuid_pk()
-    order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
+    order_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Order.id, ondelete="CASCADE")  # CASCADE
+    )
     amount: Mapped[float] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
     invoice_status_id: Mapped[int] = mapped_column(ForeignKey(InvoiceStatus.id))
     issued_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
     paid_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
 
 
-# ─────────── History & Audit ───────────
+# ─────────── History / Audit ───────────
 class OrderHistory(Base):
     __tablename__ = "order_history"
     __table_args__ = (UniqueConstraint("order_id", "timestamp"),)
-
     id: Mapped[UUID] = uuid_pk()
-    order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id))
+    order_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Order.id, ondelete="CASCADE")  # CASCADE
+    )
     timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     previous_status_id: Mapped[int | None] = mapped_column(ForeignKey(OrderStatus.id), nullable=True)
     new_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
-    user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey(User.id, ondelete="SET NULL")  # аудиторскую запись лучше сохранить
+    )
 
 
-# График работы курьера
 class CourierSchedule(Base):
     __tablename__ = "courier_schedule"
-
     id: Mapped[UUID] = uuid_pk()
-    courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
+    courier_id: Mapped[UUID] = mapped_column(
+        ForeignKey(User.id, ondelete="CASCADE")  # CASCADE
+    )
     start_time: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
     end_time: Mapped[dt_time] = mapped_column(Time, default=time(18, 0))
 
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
-
     id: Mapped[UUID] = uuid_pk()
-    user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id))
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey(User.id, ondelete="SET NULL")  # логи не удаляем
+    )
     event: Mapped[str] = mapped_column(Text)
     target_table: Mapped[str] = mapped_column(Text)
     timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
@@ -305,13 +306,13 @@ class AuditLog(Base):
 # ─────────────── Notifications ───────────────
 class Notification(Base):
     __tablename__ = "notification"
-
     id: Mapped[UUID] = uuid_pk()
-    user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey(User.id, ondelete="CASCADE")  # CASCADE
+    )
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="notifications")
-
     __table_args__ = (UniqueConstraint("user_id", "id", name="uq_user_notification"),)
