@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: deliverydrive-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     deliverydrive
+      POSTGRES_PASSWORD: deliverydrive
+      POSTGRES_DB:       deliverydrive
+      TZ:                Europe/Moscow
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  orm-servis:
+    build:
+      context: ./app/orm-servis
+    image: deliverydrive/orm-servis:latest
+    container_name: orm-servis
+    depends_on: [db]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     deliverydrive
+      POSTGRES_PASSWORD: deliverydrive
+      POSTGRES_HOST:     db
+      POSTGRES_PORT:     5432
+      POSTGRES_DB:       deliverydrive
+      TZ:                Europe/Moscow
+    volumes:
+      - ./app/orm-servis/static:/app/static
+    command: >-
+      bash -c "
+        python -m src.db.init_db &&
+        uvicorn src.main:app --host 0.0.0.0 --port 8000
+      "
+    ports:
+      - "8001:8000"
+
+  seed-db:
+    image: deliverydrive/orm-servis:latest
+    depends_on: [db]
+    environment:
+      POSTGRES_USER:     deliverydrive
+      POSTGRES_PASSWORD: deliverydrive
+      POSTGRES_HOST:     db
+      POSTGRES_PORT:     5432
+      POSTGRES_DB:       deliverydrive
+    command: python -m src.db.init_db
+    restart: "no"
+
+volumes:
+  db_data:

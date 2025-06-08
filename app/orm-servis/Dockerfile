@@ -18,6 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Теперь копируем код
 COPY app/orm-server/src ./src
 RUN mkdir -p ./static/icons
+COPY app/orm-servis/static ./static
 
 ENV PATH="/app/.venv/bin:$PATH"
 CMD ["uv", "run", "src/run_grpc.py"]
