@@ -31,7 +31,7 @@ class Settings(BaseSettings):
                 password=self.password,
                 host=self.host,
                 port=self.port,
-                path=f"/{self.db}",
+                path=self.db,
             )
         )
 

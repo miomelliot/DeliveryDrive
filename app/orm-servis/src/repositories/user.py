@@ -1,4 +1,5 @@
 # src/repositories/user.py
+from pathlib import Path
 from typing import Any, Tuple
 from uuid import UUID
 
@@ -14,6 +15,8 @@ from uuid6 import uuid7
 from src.core.security import hash_password
 from src.db.models import Role, User
 from src.schemas.user import UserCourierCreate, UserCourierUpdate, UserManagerCreate, UserManagerUpdate
+
+SAVE_DIR = Path("/app/static/icons")
 
 
 class UserBaseRepository:
@@ -38,10 +41,11 @@ class UserBaseRepository:
         return role
 
     async def _save_icon(self, user_id: UUID, icon: UploadFile) -> str:
-        path: str = f"/static/icons/{user_id}.png"
+        SAVE_DIR.mkdir(parents=True, exist_ok=True)
+        path: Path = SAVE_DIR / f"{user_id}.png"
         async with aiofiles.open(path, "wb") as f:
             await f.write(await icon.read())
-        return path
+        return str(path)
 
 
 class UserManagerRepository(UserBaseRepository):
