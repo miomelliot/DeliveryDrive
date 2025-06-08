@@ -6,17 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class EquipmentList(BaseModel):
     # HeaterType
-    model: str = Field(..., gt=0)
+    model: str
     quantity: int = Field(..., gt=0)
     model_config = ConfigDict(from_attributes=True)
 
 
 class OrderCreate(BaseModel):
-    phone: str = Field(
-        ...,
-        min_length=10,
-        max_length=12,
-    )
+    phone: str
     name: str | None = None
     location: str = Field(min_length=5)  # объединённый адрес: city, street, building распарсить по , макс 3 элемента
     window_start: time = time(9)

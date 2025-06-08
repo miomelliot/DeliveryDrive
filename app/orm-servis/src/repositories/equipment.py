@@ -1,14 +1,16 @@
 # src/repositories/equipment.py
 from datetime import date
-from typing import Tuple
+from typing import Any, Tuple
 from uuid import UUID
 
-from sqlalchemy import ScalarResult, Select, delete, select, update
+from sqlalchemy import Result, Row, ScalarResult, Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
+from src.db.models import Address, Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter
-from src.utils.http_error import _raise_409, _raise_500
+from src.schemas.equipment_chart import EquipmentChartRead
+from src.utils.http_error import _raise_404, _raise_409, _raise_500
+from src.utils.sqlalchemy_expr import location_expr
 
 
 class EquipmentRepository:
@@ -83,14 +85,45 @@ class EquipmentRepository:
         await self.session.execute(delete(Equipment).where(Equipment.id == equipment_id))
         await self.session.commit()
 
-    async def decommission_equipment(self, equipment_id: UUID) -> None:
+    async def decommission_equipment(self, equipment_id: UUID) -> EquipmentChartRead:
+        # Получаем ID статуса "decommissioned"
         status_id: int | None = await self.session.scalar(
             select(EquipmentStatus.id).where(EquipmentStatus.code == "decommissioned")
         )
-        await self.session.execute(update(Equipment).where(Equipment.id == equipment_id).values(status_id=status_id))
+        if status_id is None:
+            _raise_500("Статус 'decommissioned' не найден")
+
+        # Обновляем статус оборудования
+        await self.session.execute(
+            update(Equipment).where(Equipment.id == equipment_id).values(equipment_status_id=status_id)
+        )
         await self.session.commit()
 
-    async def send_to_service(self, equipment_id: UUID) -> None:
+        # Получаем актуальные данные по оборудованию
+        row: Result[Tuple[UUID, date | None, str, float, float, str, str]] = await self.session.execute(
+            select(
+                Equipment.id,
+                Maintenance.date,
+                HeaterType.model,
+                HeaterType.weight,
+                HeaterType.price,
+                location_expr().label("location"),
+                EquipmentStatus.description.label("status"),
+            )
+            .join(Maintenance, Maintenance.equipment_id == Equipment.id)
+            .join(HeaterType, HeaterType.id == Equipment.heater_type_id)
+            .join(Address, Address.id == Equipment.current_address_id)
+            .join(EquipmentStatus, EquipmentStatus.id == Equipment.equipment_status_id)
+            .where(Equipment.id == equipment_id)
+        )
+
+        result: Row[Tuple[UUID, date | None, str, float, float, str, str]] | None = row.first()
+        if result is None:
+            _raise_404("Не удалось собрать информацию об оборудовании")
+
+        return EquipmentChartRead.model_validate(result._asdict())
+
+    async def send_to_service(self, equipment_id: UUID) -> EquipmentChartRead:
         # Получаем ID нужных статусов
         available_id: int | None = await self.session.scalar(
             select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
@@ -100,38 +133,56 @@ class EquipmentRepository:
         )
 
         if available_id is None or maintenance_id is None:
-            raise ValueError("Не найдены необходимые статусы оборудования")
+            _raise_500("Не найдены необходимые статусы оборудования")
 
         # Получаем текущий статус оборудования
         current_status_id: int | None = await self.session.scalar(
             select(Equipment.equipment_status_id).where(Equipment.id == equipment_id)
         )
-
         if current_status_id is None:
-            raise ValueError("Оборудование не найдено")
+            _raise_404("Оборудование не найдено")
 
-        # Переключение статуса
+        # Решаем, на какой статус переключить
         if current_status_id == available_id:
-            # Отправляем на обслуживание
-            await self.session.execute(
-                update(Equipment)
-                .where(Equipment.id == equipment_id)
-                .values(
-                    equipment_status_id=maintenance_id,
-                    service_start=date.today(),
-                )
-            )
+            new_status_id = maintenance_id
         elif current_status_id == maintenance_id:
-            # Возвращаем в доступность
-            await self.session.execute(
-                update(Equipment)
-                .where(Equipment.id == equipment_id)
-                .values(
-                    equipment_status_id=available_id,
-                    service_start=None,
-                )
-            )
+            new_status_id = available_id
         else:
-            raise ValueError("Оборудование должно быть в статусе 'available' или 'maintenance'")
+            _raise_409("Оборудование должно быть в статусе 'available' или 'maintenance'")
+
+        # Обновляем статус
+        await self.session.execute(
+            update(Equipment).where(Equipment.id == equipment_id).values(equipment_status_id=new_status_id)
+        )
+
+        # Обновляем дату обслуживания только при возвращении из сервиса
+        if new_status_id == available_id:
+            await self.session.execute(
+                update(Maintenance).where(Maintenance.equipment_id == equipment_id).values(date=date.today())
+            )
 
         await self.session.commit()
+
+        # Получаем актуальные данные для возврата
+        row: Result[Tuple[UUID, date | None, str, float, float, Any, str]] = await self.session.execute(
+            select(
+                Equipment.id,
+                Maintenance.date,
+                HeaterType.model,
+                HeaterType.weight,
+                HeaterType.price,
+                location_expr().label("location"),
+                EquipmentStatus.description.label("status"),
+            )
+            .join(Maintenance, Maintenance.equipment_id == Equipment.id)
+            .join(HeaterType, HeaterType.id == Equipment.heater_type_id)
+            .join(Address, Address.id == Equipment.current_address_id)
+            .join(EquipmentStatus, EquipmentStatus.id == Equipment.equipment_status_id)
+            .where(Equipment.id == equipment_id)
+        )
+
+        result: Row[Tuple[UUID, date | None, str, float, float, Any, str]] | None = row.first()
+        if result is None:
+            _raise_404("Не удалось собрать информацию об оборудовании")
+
+        return EquipmentChartRead.model_validate(result._asdict())

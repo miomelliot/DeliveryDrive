@@ -13,21 +13,17 @@ from src.utils.http_error import _raise_400
 router = APIRouter(prefix="/order", tags=["Order"])
 
 
-
-
 @router.post("/", response_model=None, status_code=201)
 async def create_order(
     data: OrderCreate,
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, str]:
     repo = OrderRepository(session)
-
     try:
         order: Order = await repo.create_order(data)
+        return {"detail": f"Заказ {order.id} успешно создан"}
     except ValueError as e:
         _raise_400(e)
-
-    return {"detail": f"Заказ {order.id} успешно создан"}
 
 
 @router.delete("/{order_id}")
@@ -36,6 +32,8 @@ async def delete_order(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, str]:
     repo = OrderRepository(session)
-
-    await repo.delete_order(order_id)
-    return {"detail": f"Заказ {order_id} удалён"}
+    try:
+        await repo.delete_order(order_id)
+        return {"detail": f"Заказ {order_id} удалён"}
+    except ValueError as e:
+        _raise_400(e)

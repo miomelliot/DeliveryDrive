@@ -10,7 +10,7 @@ class EquipmentChartRead(BaseModel):
     # Equipment
     id: UUID
     # Maintenance
-    date: date
+    date: date | None
     # HeaterType
     model: str
     weight: float

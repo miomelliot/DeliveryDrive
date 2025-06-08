@@ -247,7 +247,7 @@ class Maintenance(Base):
     __tablename__ = "maintenance"
     id: Mapped[UUID] = uuid_pk()
     equipment_id: Mapped[UUID] = mapped_column(ForeignKey(Equipment.id, ondelete="CASCADE"))
-    date: Mapped[dt_date] = mapped_column(Date)
+    date: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
 
 
 # ───────────── OrderItem ─────────────

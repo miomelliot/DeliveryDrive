@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import get_session
 from src.repositories.equipment import EquipmentRepository
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter
+from src.schemas.equipment_chart import EquipmentChartRead
 from src.utils.http_error import _raise_400
 
 router = APIRouter(prefix="/equipment", tags=["Equipment"])
@@ -50,27 +51,25 @@ async def delete_equipment(
         _raise_400(e)
 
 
-@router.patch("/{equipment_id}/decommission", response_model=dict[str, str])
+@router.patch("/{equipment_id}/decommission", response_model=EquipmentChartRead)
 async def decommission_equipment(
     equipment_id: UUID,
     session: AsyncSession = Depends(get_session),
-) -> dict[str, str]:
+) -> EquipmentChartRead:
     repo = EquipmentRepository(session)
     try:
-        await repo.decommission_equipment(equipment_id)
+        return await repo.decommission_equipment(equipment_id)
     except ValueError as e:
         _raise_400(e)
-    return {"detail": "Оборудование списано"}
 
 
-@router.patch("/{equipment_id}/toggle-maintenance", response_model=dict[str, str])
+@router.patch("/{equipment_id}/toggle-maintenance", response_model=EquipmentChartRead)
 async def toggle_equipment_maintenance(
     equipment_id: UUID,
     session: AsyncSession = Depends(get_session),
-) -> dict[str, str]:
+) -> EquipmentChartRead:
     repo = EquipmentRepository(session)
     try:
-        await repo.send_to_service(equipment_id)
+        return await repo.send_to_service(equipment_id)
     except ValueError as e:
         _raise_400(e)
-    return {"detail": "Статус обслуживания переключён"}
