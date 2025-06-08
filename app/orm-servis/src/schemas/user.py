@@ -2,7 +2,7 @@
 from datetime import time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, FilePath
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # ─────────────────────── Base Schemas ───────────────────────
@@ -52,11 +52,11 @@ class UserCourierUpdate(UserUpdateBase):
 
 # ─────────────────────── Read Schemas ───────────────────────
 class UserManagerRead(UserBase):
-    icon: FilePath
+    icon: str | None = Field(None, alias="avatar_path")
 
 
 class UserCourierRead(UserBase):
-    icon: FilePath
+    icon: str | None = Field(None, alias="avatar_path")
     start_time: time
     end_time: time
     transport_name: Literal["walk", "bike", "scooter", "car", "van"]

@@ -1,7 +1,7 @@
 # src/api/user.py
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import User
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/user", tags=["User"])
 @router.post("/manager", response_model=UserManagerRead)
 async def create_manager_user(
     data: UserManagerCreate = Depends(),
-    icon: UploadFile = File(None),
+    icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
@@ -35,7 +35,7 @@ async def create_manager_user(
 async def update_manager_user(
     user_id: UUID,
     data: UserManagerUpdate = Depends(),
-    icon: UploadFile = File(None),
+    icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
@@ -65,7 +65,7 @@ async def get_manager(user_id: UUID, session: AsyncSession = Depends(get_session
 @router.post("/courier", response_model=UserCourierRead)
 async def create_courier_user(
     data: UserCourierCreate = Depends(),
-    icon: UploadFile = File(None),
+    icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
@@ -77,7 +77,7 @@ async def create_courier_user(
 async def update_courier_user(
     user_id: UUID,
     data: UserCourierUpdate = Depends(),
-    icon: UploadFile = File(None),
+    icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
