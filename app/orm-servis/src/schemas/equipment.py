@@ -1,13 +1,11 @@
 # src/schemas/equipment.py
+from pydantic import BaseModel, Field
 
 
-from pydantic import BaseModel
-
-
-class EquipmentChartRead(BaseModel):
+class EquipmentCreate(BaseModel):
     # Equipment
     serial_number: str
     # HeaterType
     model: str
-    price: float
-    weight: float
+    price: float = Field(..., gt=0)
+    weight: float = Field(..., gt=0)

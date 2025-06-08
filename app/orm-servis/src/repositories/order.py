@@ -5,7 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid6 import uuid7
 
-from src.db.models import Address, Client, HeaterType, Order, OrderItem, OrderStatus
+from src.db.models import Address, Client, Equipment, EquipmentStatus, HeaterType, Order, OrderItem, OrderStatus
 from src.schemas.order import OrderCreate
 
 
@@ -62,6 +62,34 @@ class OrderRepository:
             if not heater_type:
                 raise ValueError(f"Оборудование с моделью '{eq.model}' не найдено")
 
+            # Найти конкретные свободные экземпляры оборудования
+            equipment_items = list(
+                await self.session.scalars(
+                    select(Equipment)
+                    .where(
+                        Equipment.heater_type_id == heater_type.id,
+                        Equipment.status.has(code="in_stock"),
+                    )
+                    .limit(eq.quantity)
+                )
+            )
+
+            if len(equipment_items) < eq.quantity:
+                raise ValueError(f"Недостаточно оборудования модели '{eq.model}' на складе")
+
+            # Обновить адрес и статус
+            reserved_status_id: int | None = await self.session.scalar(
+                select(EquipmentStatus.id).where(EquipmentStatus.code == "in_rent")
+            )
+            if reserved_status_id is None:
+                raise ValueError("Статус 'in_rent' не найден в справочнике")
+
+            for equip in equipment_items:
+                equip.current_address_id = client.address_id
+                equip.equipment_status_id = reserved_status_id
+                self.session.add(equip)
+
+            # Добавить заказанную позицию (всё равно по HeaterType)
             item = OrderItem(
                 id=uuid7(),
                 order_id=order.id,
@@ -69,9 +97,6 @@ class OrderRepository:
                 quantity=eq.quantity,
             )
             self.session.add(item)
-
-        await self.session.commit()
-        await self.session.refresh(order)
         return order
 
     async def delete_order(self, order_id: UUID) -> None:

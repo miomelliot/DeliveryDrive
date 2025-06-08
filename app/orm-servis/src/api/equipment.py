@@ -1,2 +1,65 @@
-# src/schemas/equipment.py
+# src/api/equipment.py
+from uuid import UUID
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.db.session import get_session
+from src.repositories.equipment import EquipmentRepository
+from src.schemas.equipment import EquipmentCreate
+
+router = APIRouter(prefix="/equipment", tags=["Equipment"])
+
+
+@router.post("/", response_model=None)
+async def add_equipment(
+    data: EquipmentCreate,
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    repo = EquipmentRepository(session)
+    try:
+        await repo.add_equipment(data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.get("/models/", response_model=list[str])
+async def list_models_by_status(
+    status: str = Query(..., description="Код статуса: available, under_maintenance, etc."),
+    session: AsyncSession = Depends(get_session),
+) -> list[str]:
+    repo = EquipmentRepository(session)
+    return await repo.list_models_by_status(status)
+
+
+@router.delete("/{equipment_id}", response_model=dict[str, str])
+async def delete_equipment(
+    equipment_id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    repo = EquipmentRepository(session)
+    await repo.delete_equipment(equipment_id)
+    return {"detail": "Оборудование удалено"}
+
+
+@router.patch("/{equipment_id}/decommission", response_model=dict[str, str])
+async def decommission_equipment(
+    equipment_id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    repo = EquipmentRepository(session)
+    await repo.decommission_equipment(equipment_id)
+    return {"detail": "Оборудование списано"}
+
+
+@router.patch("/{equipment_id}/toggle-maintenance", response_model=dict[str, str])
+async def toggle_equipment_maintenance(
+    equipment_id: UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, str]:
+    repo = EquipmentRepository(session)
+    try:
+        await repo.send_to_service(equipment_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return {"detail": "Статус обслуживания переключён"}
