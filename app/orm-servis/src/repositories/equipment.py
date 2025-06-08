@@ -6,9 +6,9 @@ from uuid import UUID
 from sqlalchemy import ScalarResult, Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Equipment, EquipmentStatus, HeaterType, Warehouse
+from src.db.models import Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter
-from src.utils.http_error import _raise_500
+from src.utils.http_error import _raise_409, _raise_500
 
 
 class EquipmentRepository:
@@ -17,6 +17,12 @@ class EquipmentRepository:
 
     async def add_equipment(self, data: EquipmentCreate) -> Equipment:
         async with self.session.begin():
+            dup: UUID | None = await self.session.scalar(
+                select(Equipment.id).where(Equipment.serial_number == data.serial_number)
+            )
+            if dup:
+                _raise_409("Серийный номер уже существует")
+
             # 1. HeaterType (создаём при необходимости)
             heater_type: HeaterType | None = await self.session.scalar(
                 select(HeaterType).where(HeaterType.model == data.model)
@@ -28,7 +34,7 @@ class EquipmentRepository:
                     weight=data.weight,
                 )
                 self.session.add(heater_type)
-                await self.session.flush()  # нужен id
+                await self.session.flush()
 
             # 2. «Available» статус
             status_id: int | None = await self.session.scalar(
@@ -51,6 +57,13 @@ class EquipmentRepository:
                 current_address_id=warehouse.address_id,
             )
             self.session.add(equipment)
+            await self.session.flush()
+
+            first_maintenance = Maintenance(
+                equipment_id=equipment.id,
+                date=date.today(),
+            )
+            self.session.add(first_maintenance)
 
         # вне контекста транзакции можно обновить объект
         await self.session.refresh(equipment)

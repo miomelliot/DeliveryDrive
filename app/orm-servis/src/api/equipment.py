@@ -16,10 +16,11 @@ router = APIRouter(prefix="/equipment", tags=["Equipment"])
 async def add_equipment(
     data: EquipmentCreate,
     session: AsyncSession = Depends(get_session),
-) -> None:
+) -> dict[str, str]:
     repo = EquipmentRepository(session)
     try:
         await repo.add_equipment(data)
+        return {"detail": "Оборудование добавлено на склад"}
     except ValueError as e:
         _raise_400(e)
 
@@ -44,9 +45,9 @@ async def delete_equipment(
     repo = EquipmentRepository(session)
     try:
         await repo.delete_equipment(equipment_id)
+        return {"detail": "Оборудование удалено"}
     except ValueError as e:
         _raise_400(e)
-    return {"detail": "Оборудование удалено"}
 
 
 @router.patch("/{equipment_id}/decommission", response_model=dict[str, str])

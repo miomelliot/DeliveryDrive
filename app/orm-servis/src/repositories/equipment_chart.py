@@ -26,7 +26,7 @@ class EquipmentChartRepository:
                 HeaterType.model,
                 HeaterType.weight,
                 HeaterType.price,
-                location_expr(),
+                location_expr().label("location"),
                 EquipmentStatus.description.label("status"),
             )
             .join(Maintenance, Maintenance.equipment_id == Equipment.id)

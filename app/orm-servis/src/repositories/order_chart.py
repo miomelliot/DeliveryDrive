@@ -101,7 +101,7 @@ class OrderChartRepository:
 
     async def get_unique_full_names(self) -> list[str]:
         stmt: Select[Tuple[str]] = (
-            select(full_name_expr())
+            select(full_name_expr().label("full_name"))
             .select_from(Order)
             .join(RouteItem, RouteItem.order_id == Order.id)
             .join(Route, Route.id == RouteItem.route_id)
