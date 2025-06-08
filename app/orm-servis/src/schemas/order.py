@@ -1,13 +1,14 @@
 # src/schemas/order.py
 from datetime import date, time
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EquipmentList(BaseModel):
     # HeaterType
     model: str = Field(..., gt=0)
     quantity: int = Field(..., gt=0)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderCreate(BaseModel):
@@ -25,3 +26,4 @@ class OrderCreate(BaseModel):
     comment: str | None = None
 
     equipment: list[EquipmentList]
+    model_config = ConfigDict(from_attributes=True)

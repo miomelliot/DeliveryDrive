@@ -2,7 +2,7 @@
 from datetime import time
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, FilePath
+from pydantic import BaseModel, ConfigDict, EmailStr, FilePath
 
 
 # ─────────────────────── Base Schemas ───────────────────────
@@ -11,6 +11,7 @@ class UserBase(BaseModel):
     last_name: str | None
     phone: str
     email: EmailStr
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdateBase(BaseModel):
@@ -19,6 +20,7 @@ class UserUpdateBase(BaseModel):
     phone: str | None = None
     email: EmailStr | None = None
     password: str | None = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ─────────────────────── Create Schemas ───────────────────────

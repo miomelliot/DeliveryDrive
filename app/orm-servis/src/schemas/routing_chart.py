@@ -2,7 +2,7 @@ from datetime import datetime, time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RoutingChartRead(BaseModel):
@@ -13,6 +13,7 @@ class RoutingChartRead(BaseModel):
     phone: str
     location: str  # объединённый адрес: city, street, building
     description: str  # статус заказа
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoutingChartFilter(BaseModel):

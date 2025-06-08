@@ -3,7 +3,7 @@ from datetime import datetime, time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrderChartRead(BaseModel):
@@ -21,6 +21,8 @@ class OrderChartRead(BaseModel):
     status: str  # статус заказа
     # User
     full_name: str | None  # first_name + last_name
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderChartFilter(BaseModel):

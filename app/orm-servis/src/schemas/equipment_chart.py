@@ -3,7 +3,7 @@ from datetime import date
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EquipmentChartRead(BaseModel):
@@ -19,6 +19,8 @@ class EquipmentChartRead(BaseModel):
     location: str  # объединённый адрес: city, street, building
     # EquipmentStatus
     status: str  # description
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EquipmentChartFilter(BaseModel):

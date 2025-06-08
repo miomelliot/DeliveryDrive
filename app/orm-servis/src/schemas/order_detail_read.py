@@ -2,19 +2,21 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, FilePath
+from pydantic import BaseModel, ConfigDict, FilePath
 
 
 class OrderItemChart(BaseModel):
     model: str
     weight: float
     quantity: int
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderHistoryChart(BaseModel):
     timestamp: datetime
     previous_status: str | None
     new_status: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderDetailRead(BaseModel):
@@ -35,6 +37,7 @@ class OrderDetailRead(BaseModel):
     comment: str | None
     items: list[OrderItemChart]
     history: list[OrderHistoryChart]
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderDetailUpdate(BaseModel):
@@ -49,3 +52,4 @@ class OrderDetailUpdate(BaseModel):
     invoice_issued_at: date | None = None
     invoice_paid_at: date | None = None
     comment: str | None = None
+    model_config = ConfigDict(from_attributes=True)

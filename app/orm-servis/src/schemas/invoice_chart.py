@@ -3,7 +3,7 @@ from datetime import date
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class InvoiceChartRead(BaseModel):
@@ -20,6 +20,7 @@ class InvoiceChartRead(BaseModel):
     price: float
     # InvoiceStatus
     status: str  # description
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InvoiceChartFilter(BaseModel):
@@ -52,3 +53,5 @@ class InvoiceWidgetRead(BaseModel):
     total_active_contracts: int
     potential_income: float
     monthly_average: float
+
+    model_config = ConfigDict(from_attributes=True)

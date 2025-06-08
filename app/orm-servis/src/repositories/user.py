@@ -45,7 +45,7 @@ class UserBaseRepository:
         path: Path = SAVE_DIR / f"{user_id}.png"
         async with aiofiles.open(path, "wb") as f:
             await f.write(await icon.read())
-        return str(path)
+        return f"/static/icons/{user_id}.png"
 
 
 class UserManagerRepository(UserBaseRepository):
@@ -92,7 +92,7 @@ class UserCourierRepository(UserBaseRepository):
             start_time=data.start_time,
             end_time=data.end_time,
             transport_name=data.transport_name,
-            icon=await self._save_icon(uuid7(), icon) if icon else None,
+            avatar_path=await self._save_icon(uuid7(), icon) if icon else None,
         )
         self.session.add(user)
         await self.session.commit()

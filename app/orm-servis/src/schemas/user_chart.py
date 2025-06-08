@@ -3,7 +3,7 @@ from datetime import time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserChartRead(BaseModel):
@@ -13,6 +13,7 @@ class UserChartRead(BaseModel):
     email: EmailStr
     transport_name: str
     work_schedule: str  # HH:MM-HH:MM (start_time+end_time)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserChartFilter(BaseModel):

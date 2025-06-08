@@ -1,7 +1,7 @@
 # src/schemas/equipment.py
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EquipmentCreate(BaseModel):
@@ -12,6 +12,9 @@ class EquipmentCreate(BaseModel):
     price: float = Field(..., gt=0)
     weight: float = Field(..., gt=0)
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class EquipmentFilter(BaseModel):
     status: Literal["rented", "maintenance", "available", "decommissioned"] | None = None
+    model_config = ConfigDict(from_attributes=True)

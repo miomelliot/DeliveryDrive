@@ -3,7 +3,7 @@ from datetime import datetime, time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RouteChart(BaseModel):
@@ -15,6 +15,7 @@ class RouteChart(BaseModel):
     # SQL
     count_orders: int
     status: int  # Процент выполнения (0–100)
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RouteChartFilter(BaseModel):
