@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid6 import uuid7
 
 from src.db.models import Equipment, EquipmentStatus, HeaterType
-from src.schemas.equipment import EquipmentCreate
+from src.schemas.equipment import EquipmentCreate, EquipmentFilter
 
 
 class EquipmentRepository:
@@ -40,14 +40,13 @@ class EquipmentRepository:
         await self.session.refresh(equipment)
         return equipment
 
-    async def list_models_by_status(self, status_code: str) -> list[str]:
-        stmt: Select[Tuple[str]] = (
-            select(HeaterType.model)
-            .join(Equipment)
-            .join(EquipmentStatus)
-            .where(EquipmentStatus.code == status_code)
-            .distinct()
-        )
+    async def list_models_by_status(self, filter: EquipmentFilter) -> list[str]:
+        stmt: Select[Tuple[str]] = select(HeaterType.model).join(Equipment).join(EquipmentStatus)
+
+        if filter.status:
+            stmt = stmt.where(EquipmentStatus.code == filter.status)
+
+        stmt = stmt.distinct()
         result: ScalarResult[str] = await self.session.scalars(stmt)
         return list(result)
 
@@ -68,7 +67,7 @@ class EquipmentRepository:
             select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
         )
         maintenance_id: int | None = await self.session.scalar(
-            select(EquipmentStatus.id).where(EquipmentStatus.code == "under_maintenance")
+            select(EquipmentStatus.id).where(EquipmentStatus.code == "maintenance")
         )
 
         if available_id is None or maintenance_id is None:
@@ -104,6 +103,6 @@ class EquipmentRepository:
                 )
             )
         else:
-            raise ValueError("Оборудование должно быть в статусе 'available' или 'under_maintenance'")
+            raise ValueError("Оборудование должно быть в статусе 'available' или 'maintenance'")
 
         await self.session.commit()

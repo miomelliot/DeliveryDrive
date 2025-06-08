@@ -79,10 +79,10 @@ class OrderRepository:
 
             # Обновить адрес и статус
             reserved_status_id: int | None = await self.session.scalar(
-                select(EquipmentStatus.id).where(EquipmentStatus.code == "in_rent")
+                select(EquipmentStatus.id).where(EquipmentStatus.code == "rented")
             )
             if reserved_status_id is None:
-                raise ValueError("Статус 'in_rent' не найден в справочнике")
+                raise ValueError("Статус 'rented' не найден в справочнике")
 
             for equip in equipment_items:
                 equip.current_address_id = client.address_id

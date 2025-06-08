@@ -1,12 +1,12 @@
 # src/api/equipment.py
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
 from src.repositories.equipment import EquipmentRepository
-from src.schemas.equipment import EquipmentCreate
+from src.schemas.equipment import EquipmentCreate, EquipmentFilter
 
 router = APIRouter(prefix="/equipment", tags=["Equipment"])
 
@@ -25,11 +25,11 @@ async def add_equipment(
 
 @router.get("/models/", response_model=list[str])
 async def list_models_by_status(
-    status: str = Query(..., description="Код статуса: available, under_maintenance, etc."),
+    filter: EquipmentFilter = Depends(),
     session: AsyncSession = Depends(get_session),
 ) -> list[str]:
     repo = EquipmentRepository(session)
-    return await repo.list_models_by_status(status)
+    return await repo.list_models_by_status(filter)
 
 
 @router.delete("/{equipment_id}", response_model=dict[str, str])
