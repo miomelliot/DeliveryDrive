@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import hash_password
 from src.db.models import (
+    Address,
     Base,
     EquipmentStatus,
     EventType,
@@ -15,6 +16,7 @@ from src.db.models import (
     Role,
     TransportType,
     User,
+    Warehouse,
 )
 from src.db.session import AsyncSessionFactory, engine
 
@@ -96,13 +98,39 @@ async def _create_admin(session: AsyncSession) -> None:
     )
 
 
+async def _create_first_address(session: AsyncSession) -> Address:
+    """Создаём адрес №1, если его ещё нет, и возвращаем объект."""
+    stmt: Select[Tuple[Any]] = select(Address).limit(1)
+    addr: Address | None = await session.scalar(stmt)
+    if addr:  # уже есть хоть один адрес — считаем его первым
+        return addr
+
+    addr = Address(
+        street="Курчатова",
+        building="1А",
+        city="Москва",
+        lat=55.7558,
+        lon=37.6173,
+    )
+    session.add(addr)
+    await session.flush()
+    return addr
+
+
+async def _create_warehouse(session: AsyncSession, addr: Address) -> None:
+    """Создаём склад, если складов ещё нет (по-простому)."""
+    if await session.scalar(select(Warehouse).limit(1)):
+        return
+    session.add(Warehouse(address_id=addr.id))
+
+
 # ─────────── точка входа ───────────
 async def init_db() -> None:
     # создаём таблицы (если ещё нет)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # наполняем справочники и создаём админа
+    # наполняем справочники, создаём адрес+склад и админа
     async with AsyncSessionFactory() as session:
         await _upsert_roles(session)
         await _upsert_simple(session, OrderStatus, ORDER_STATUSES)
@@ -110,6 +138,11 @@ async def init_db() -> None:
         await _upsert_simple(session, InvoiceStatus, INVOICE_STATUSES)
         await _upsert_simple(session, EventType, EVENT_TYPES)
         await _upsert_transport(session)
+
+        # вставляем адрес и склад
+        first_addr: Address = await _create_first_address(session)
+        await _create_warehouse(session, first_addr)
+
         await _create_admin(session)
         await session.commit()
 

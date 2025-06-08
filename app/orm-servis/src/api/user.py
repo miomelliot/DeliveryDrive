@@ -1,5 +1,4 @@
 # src/api/user.py
-from typing import NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
@@ -16,14 +15,9 @@ from src.schemas.user import (
     UserManagerRead,
     UserManagerUpdate,
 )
+from src.utils.http_error import _raise_400
 
 router = APIRouter(prefix="/user", tags=["User"])
-
-
-# ────────────────────────── helpers ──────────────────────────
-def _raise_400(exc: ValueError) -> NoReturn:
-    """Преобразуем ValueError → HTTP 400 (никогда не возвращает)."""
-    raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 # ─────────────────────────── MANAGER ───────────────────────────

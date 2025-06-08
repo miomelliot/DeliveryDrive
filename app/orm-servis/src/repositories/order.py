@@ -3,7 +3,6 @@ from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid6 import uuid7
 
 from src.db.models import Address, Client, Equipment, EquipmentStatus, HeaterType, Order, OrderItem, OrderStatus
 from src.schemas.order import OrderCreate
@@ -21,7 +20,6 @@ class OrderRepository:
             raise ValueError("Адрес должен быть в формате: Город, Улица, Дом") from e
 
         address = Address(
-            id=uuid7(),
             city=city,
             street=street,
             building=building,
@@ -32,7 +30,6 @@ class OrderRepository:
 
         # 👨️🛋️ Клиент
         client = Client(
-            id=uuid7(),
             name=data.name or "-",
             phone=data.phone,
             address_id=address.id,
@@ -41,7 +38,6 @@ class OrderRepository:
 
         # 📝 Заказ
         order = Order(
-            id=uuid7(),
             client_id=client.id,
             rent_start=data.rent_start,
             rent_end=data.rent_end,
@@ -91,7 +87,6 @@ class OrderRepository:
 
             # Добавить заказанную позицию (всё равно по HeaterType)
             item = OrderItem(
-                id=uuid7(),
                 order_id=order.id,
                 heater_type_id=heater_type.id,
                 quantity=eq.quantity,

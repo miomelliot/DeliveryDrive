@@ -5,10 +5,10 @@ from uuid import UUID
 
 from sqlalchemy import ScalarResult, Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid6 import uuid7
 
-from src.db.models import Equipment, EquipmentStatus, HeaterType
+from src.db.models import Equipment, EquipmentStatus, HeaterType, Warehouse
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter
+from utils.http_error import _raise_500
 
 
 class EquipmentRepository:
@@ -16,27 +16,43 @@ class EquipmentRepository:
         self.session: AsyncSession = session
 
     async def add_equipment(self, data: EquipmentCreate) -> Equipment:
-        heater_type: HeaterType | None = await self.session.scalar(
-            select(HeaterType).where(HeaterType.model == data.model)
-        )
-        if not heater_type:
-            raise ValueError(f"Модель '{data.model}' не найдена")
+        async with self.session.begin():
+            # 1. HeaterType (создаём при необходимости)
+            heater_type: HeaterType | None = await self.session.scalar(
+                select(HeaterType).where(HeaterType.model == data.model)
+            )
+            if not heater_type:
+                heater_type = HeaterType(
+                    model=data.model,
+                    price=data.price,
+                    weight=data.weight,
+                )
+                self.session.add(heater_type)
+                await self.session.flush()  # нужен id
 
-        status_id: int | None = await self.session.scalar(
-            select(EquipmentStatus.id).where(EquipmentStatus.code == "in_stock")
-        )
+            # 2. «Available» статус
+            status_id: int | None = await self.session.scalar(
+                select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
+            )
+            if status_id is None:
+                _raise_500("Статус 'available' не найден в справочнике EquipmentStatus")
 
-        equipment = Equipment(
-            id=uuid7(),
-            serial_number=data.serial_number,
-            heater_type_id=heater_type.id,
-            price=data.price,
-            weight=data.weight,
-            status_id=status_id,
-        )
+            # 3. Первый склад + его адрес
+            warehouse: Warehouse | None = await self.session.scalar(select(Warehouse).limit(1))
+            if warehouse is None:
+                _raise_500("Не найдено ни одного склада – база не инициализирована")
 
-        self.session.add(equipment)
-        await self.session.commit()
+            # 4. Сам объект оборудования
+            equipment = Equipment(
+                heater_type_id=heater_type.id,
+                serial_number=data.serial_number,
+                equipment_status_id=status_id,
+                warehouse_id=warehouse.id,
+                current_address_id=warehouse.address_id,
+            )
+            self.session.add(equipment)
+
+        # вне контекста транзакции можно обновить объект
         await self.session.refresh(equipment)
         return equipment
 

@@ -1,12 +1,13 @@
 # src/api/equipment.py
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
 from src.repositories.equipment import EquipmentRepository
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter
+from src.utils.http_error import _raise_400
 
 router = APIRouter(prefix="/equipment", tags=["Equipment"])
 
@@ -20,7 +21,7 @@ async def add_equipment(
     try:
         await repo.add_equipment(data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        _raise_400(e)
 
 
 @router.get("/models/", response_model=list[str])
@@ -29,7 +30,10 @@ async def list_models_by_status(
     session: AsyncSession = Depends(get_session),
 ) -> list[str]:
     repo = EquipmentRepository(session)
-    return await repo.list_models_by_status(filter)
+    try:
+        return await repo.list_models_by_status(filter)
+    except ValueError as e:
+        _raise_400(e)
 
 
 @router.delete("/{equipment_id}", response_model=dict[str, str])
@@ -38,7 +42,10 @@ async def delete_equipment(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, str]:
     repo = EquipmentRepository(session)
-    await repo.delete_equipment(equipment_id)
+    try:
+        await repo.delete_equipment(equipment_id)
+    except ValueError as e:
+        _raise_400(e)
     return {"detail": "Оборудование удалено"}
 
 
@@ -48,7 +55,10 @@ async def decommission_equipment(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, str]:
     repo = EquipmentRepository(session)
-    await repo.decommission_equipment(equipment_id)
+    try:
+        await repo.decommission_equipment(equipment_id)
+    except ValueError as e:
+        _raise_400(e)
     return {"detail": "Оборудование списано"}
 
 
@@ -61,5 +71,5 @@ async def toggle_equipment_maintenance(
     try:
         await repo.send_to_service(equipment_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        _raise_400(e)
     return {"detail": "Статус обслуживания переключён"}
