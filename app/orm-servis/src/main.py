@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from src.api import (
     equipment_chart,
     invoice_chart,
+    order,
     order_chart,
     order_detail_read,
     routing_chart,
@@ -22,6 +23,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # entities
 app.include_router(user.router)
+app.include_router(order.router)
 app.include_router(order_detail_read.router)
 # chart
 app.include_router(user_chart.router)

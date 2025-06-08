@@ -5,7 +5,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid6 import uuid7
 
-from src.db.models import Address, Client, HeaterType, Order, OrderItem
+from src.db.models import Address, Client, HeaterType, Order, OrderItem, OrderStatus
 from src.schemas.order import OrderCreate
 
 
@@ -26,14 +26,14 @@ class OrderRepository:
             street=street,
             building=building,
             lat=0.0,
-            lon=0.0,  # Шаблон
+            lon=0.0,
         )
         self.session.add(address)
 
         # 👨️🛋️ Клиент
         client = Client(
             id=uuid7(),
-            name=data.name or "Без имени",
+            name=data.name or "-",
             phone=data.phone,
             address_id=address.id,
         )
@@ -47,7 +47,9 @@ class OrderRepository:
             rent_end=data.rent_end,
             window_start=data.window_start,
             window_end=data.window_end,
-            status_id=1,  # например, "Новый"
+            status_id=await self.session.scalar(
+                select(OrderStatus.id).where(OrderStatus.code == "new"),
+            ),
             comment=data.comment,
         )
         self.session.add(order)

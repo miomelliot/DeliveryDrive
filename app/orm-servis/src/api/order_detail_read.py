@@ -8,7 +8,7 @@ from src.db.session import get_session
 from src.repositories.order_detail_read import OrderDetailRepository
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
 
-router = APIRouter(prefix="/orders", tags=["Orders"])
+router = APIRouter(prefix="/order", tags=["Order"])
 
 
 @router.get("/{order_id}", response_model=OrderDetailRead)
