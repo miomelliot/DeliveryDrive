@@ -275,7 +275,7 @@ class Route(Base):
 
 class RouteItem(Base):
     __tablename__ = "route_item"
-    __table_args__ = UniqueConstraint("route_id", "sequence", name="uq_route_sequence")
+    __table_args__ = (UniqueConstraint("route_id", "sequence", name="uq_route_sequence"),)
     id: Mapped[UUID] = uuid_pk()
     route_id: Mapped[UUID] = mapped_column(ForeignKey(Route.id, ondelete="CASCADE"))
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="SET NULL"))
@@ -351,4 +351,4 @@ class Notification(Base):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="notifications")
-    __table_args__ = UniqueConstraint("user_id", "id", name="uq_user_notification")
+    __table_args__ = (UniqueConstraint("user_id", "id", name="uq_user_notification"),)

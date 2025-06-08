@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Equipment, EquipmentStatus, HeaterType, Warehouse
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter
-from utils.http_error import _raise_500
+from src.utils.http_error import _raise_500
 
 
 class EquipmentRepository:
