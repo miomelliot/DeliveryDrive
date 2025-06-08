@@ -83,7 +83,13 @@ class UserManagerRepository(UserBaseRepository):
             avatar_path=avatar,
         )
         self.session.add(user)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            if "user_email_key" in str(e):
+                raise ValueError("Пользователь с таким email уже существует") from e
+            raise
 
         return UserManagerRead(
             id=user.id,
@@ -119,7 +125,8 @@ class UserManagerRepository(UserBaseRepository):
         )
 
     async def list(self) -> list[UserManagerRead]:
-        rows: ScalarResult[User] = await self.session.scalars(select(User))
+        stmt: Select[Tuple[User]] = select(User).join(Role, User.role_id == Role.id).where(Role.name == "manager")
+        rows: ScalarResult[User] = await self.session.scalars(stmt)
         return [
             UserManagerRead(
                 id=user.id,
@@ -164,20 +171,25 @@ class UserCourierRepository(UserBaseRepository):
             avatar_path=avatar,
         )
         self.session.add(user)
-        await self.session.flush()
 
-        self.session.add(
-            CourierSchedule(
-                courier_id=user_id,
-                start_time=data.start_time,
-                end_time=data.end_time,
+        try:
+            await self.session.flush()  # теперь тут
+            self.session.add(
+                CourierSchedule(
+                    courier_id=user_id,
+                    start_time=data.start_time,
+                    end_time=data.end_time,
+                )
             )
-        )
+            tt: TransportType = await self._get_transport_type(data.transport_name)
+            self.session.add(Transport(courier_id=user_id, transport_type_id=tt.id))
 
-        tt: TransportType = await self._get_transport_type(data.transport_name)
-        self.session.add(Transport(courier_id=user_id, transport_type_id=tt.id))
-
-        await self.session.commit()
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            if "user_email_key" in str(e):
+                raise ValueError("Курьер с таким email уже существует") from e
+            raise
 
         return UserCourierRead(
             id=user.id,

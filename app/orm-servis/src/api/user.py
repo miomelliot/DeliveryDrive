@@ -3,6 +3,7 @@ from typing import NoReturn
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
@@ -122,12 +123,14 @@ async def get_courier(user_id: UUID, session: AsyncSession = Depends(get_session
 
 
 # ─────────────────────────── DELETE ───────────────────────────
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", status_code=200)
 async def delete_user(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
-) -> None:
+) -> JSONResponse:
     """Удалить любого пользователя по ID (404, если не найден)."""
     deleted: bool = await UserBaseRepository(session).delete(user_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    return JSONResponse(content={"message": "Пользователь успешно удалён"})

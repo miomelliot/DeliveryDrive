@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # ----- базовые -----
-class _UserInBase(BaseModel):  # <-- без id, используется для CREATE/UPDATE
+class _UserInBase(BaseModel):
     first_name: str
     last_name: str | None
     phone: str
@@ -14,7 +14,7 @@ class _UserInBase(BaseModel):  # <-- без id, используется для 
     model_config = ConfigDict(from_attributes=True)
 
 
-class _UserOutBase(_UserInBase):  # <-- с id, используется для READ
+class _UserOutBase(_UserInBase):
     id: UUID
 
 
