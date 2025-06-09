@@ -92,7 +92,7 @@ async def _create_admin(session: AsyncSession) -> None:
             last_name="Системы",
             phone="+70000000000",
             email=admin_email,
-            password_hash=hash_password("admin"),
+            password_hash=hash_password("admin12345678"),
             role_id=1,
         )
     )
