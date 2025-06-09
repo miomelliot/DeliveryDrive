@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
 from src.repositories.equipment import EquipmentRepository
-from src.schemas.equipment import EquipmentCreate, EquipmentFilter
+from src.schemas.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
 from src.schemas.equipment_chart import EquipmentChartRead
 from src.utils.http_error import _raise_400
 
@@ -26,14 +26,22 @@ async def add_equipment(
         _raise_400(e)
 
 
-@router.get("/models/", response_model=list[str])
-async def list_models_by_status(
-    filter: EquipmentFilter = Depends(),
-    session: AsyncSession = Depends(get_session),
-) -> list[str]:
+@router.get("/models/distinct", response_model=list[str])
+async def get_all_models(session: AsyncSession = Depends(get_session)) -> list[str]:
     repo = EquipmentRepository(session)
     try:
-        return await repo.list_models_by_status(filter)
+        return await repo.list_all_models()
+    except ValueError as e:
+        _raise_400(e)
+
+
+@router.get("/models/info", response_model=list[EquipmentRead])
+async def get_models_by_status(
+    filter: EquipmentFilter = Depends(), session: AsyncSession = Depends(get_session)
+) -> list[EquipmentRead]:
+    repo = EquipmentRepository(session)
+    try:
+        return await repo.list_models_with_count(filter)
     except ValueError as e:
         _raise_400(e)
 

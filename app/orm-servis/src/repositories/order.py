@@ -39,7 +39,7 @@ class OrderRepository:
             self.session.add(client)
             await self.session.flush()
 
-            status_id = await self.session.scalar(
+            status_id: int | None = await self.session.scalar(
                 select(OrderStatus.id).where(OrderStatus.code == "new"),
             )
             if status_id is None:
@@ -55,7 +55,15 @@ class OrderRepository:
                 comment=data.comment,
             )
             self.session.add(order)
-            await self.session.flush()  # 🧠 order.id нужен ниже
+            await self.session.flush()
+
+            # await add_order_history(
+            #     self.session,
+            #     order_id=order.id,
+            #     previous_status_id=None,
+            #     new_status_id=status_id,
+            #     user_id=data.created_by,  # <- передаём ID автора (см. схему ниже)
+            # )
 
             for eq in data.equipment:
                 heater_type: HeaterType | None = await self.session.scalar(
@@ -69,7 +77,7 @@ class OrderRepository:
                         select(Equipment)
                         .where(
                             Equipment.heater_type_id == heater_type.id,
-                            Equipment.status.has(code="in_stock"),
+                            Equipment.status.has(code="available"),
                         )
                         .limit(eq.quantity)
                     )

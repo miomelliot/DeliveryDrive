@@ -21,7 +21,10 @@ async def create_order(
     repo = OrderRepository(session)
     try:
         order: Order = await repo.create_order(data)
-        return {"detail": f"Заказ {order.id} успешно создан"}
+        return {
+            "id": f"{order.id}",
+            "detail": "Заказ успешно создан",
+        }
     except ValueError as e:
         _raise_400(e)
 

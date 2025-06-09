@@ -15,6 +15,16 @@ class EquipmentCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EquipmentRead(BaseModel):
+    model: str
+    price: float
+    weight: float
+    count: int
+    count_available: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class EquipmentFilter(BaseModel):
     status: Literal["rented", "maintenance", "available", "decommissioned"] | None = None
     model_config = ConfigDict(from_attributes=True)

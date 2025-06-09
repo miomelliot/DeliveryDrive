@@ -3,11 +3,11 @@ from datetime import date
 from typing import Any, Tuple
 from uuid import UUID
 
-from sqlalchemy import Result, Row, ScalarResult, Select, delete, select, update
+from sqlalchemy import Result, Row, ScalarResult, Select, case, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address, Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
-from src.schemas.equipment import EquipmentCreate, EquipmentFilter
+from src.schemas.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
 from src.schemas.equipment_chart import EquipmentChartRead
 from src.utils.http_error import _raise_404, _raise_409, _raise_500
 from src.utils.sqlalchemy_expr import location_expr
@@ -71,15 +71,30 @@ class EquipmentRepository:
         await self.session.refresh(equipment)
         return equipment
 
-    async def list_models_by_status(self, filter: EquipmentFilter) -> list[str]:
-        stmt: Select[Tuple[str]] = select(HeaterType.model).join(Equipment).join(EquipmentStatus)
+    async def list_all_models(self) -> list[str]:
+        stmt: Select[Tuple[str]] = select(HeaterType.model).distinct()
+        result: ScalarResult[str] = await self.session.scalars(stmt)
+        return list(result)
+
+    async def list_models_with_count(self, filter: EquipmentFilter) -> list[EquipmentRead]:
+        stmt: Select[Tuple[str, float, float, int, int]] = (
+            select(
+                HeaterType.model,
+                HeaterType.price,
+                HeaterType.weight,
+                func.count(Equipment.id).label("count"),
+                func.count(case((EquipmentStatus.code == "available", 1))).label("count_available"),
+            )
+            .join(Equipment, HeaterType.id == Equipment.heater_type_id)
+            .join(EquipmentStatus, EquipmentStatus.id == Equipment.equipment_status_id)
+            .group_by(HeaterType.model, HeaterType.price, HeaterType.weight)
+        )
 
         if filter.status:
             stmt = stmt.where(EquipmentStatus.code == filter.status)
 
-        stmt = stmt.distinct()
-        result: ScalarResult[str] = await self.session.scalars(stmt)
-        return list(result)
+        result: Result[Tuple[str, float, float, int, int]] = await self.session.execute(stmt)
+        return [EquipmentRead.model_validate(row._asdict()) for row in result.all()]
 
     async def delete_equipment(self, equipment_id: UUID) -> None:
         await self.session.execute(delete(Equipment).where(Equipment.id == equipment_id))
