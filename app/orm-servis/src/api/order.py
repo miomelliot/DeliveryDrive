@@ -23,7 +23,7 @@ async def create_order(
 ) -> dict[str, str]:
     repo = OrderRepository(session)
     try:
-        order: Order = await repo.create_order(data)
+        order: Order = await repo.create_order(data, current_user.id)
         return {
             "id": f"{order.id}",
             "detail": "Заказ успешно создан",

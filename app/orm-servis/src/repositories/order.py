@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address, Client, Equipment, EquipmentStatus, HeaterType, Order, OrderItem, OrderStatus
 from src.schemas.order import OrderCreate
+from src.utils.history import add_order_history
 from src.utils.http_error import _raise_404, _raise_409, _raise_422, _raise_500
 
 
@@ -13,7 +14,7 @@ class OrderRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
 
-    async def create_order(self, data: OrderCreate) -> Order:
+    async def create_order(self, data: OrderCreate, uid: UUID) -> Order:
         async with self.session.begin():
             # 📍 Парсинг адреса
             try:
@@ -57,13 +58,13 @@ class OrderRepository:
             self.session.add(order)
             await self.session.flush()
 
-            # await add_order_history(
-            #     self.session,
-            #     order_id=order.id,
-            #     previous_status_id=None,
-            #     new_status_id=status_id,
-            #     user_id=data.created_by,  # <- передаём ID автора (см. схему ниже)
-            # )
+            await add_order_history(
+                self.session,
+                order_id=order.id,
+                previous_status_id=None,
+                new_status_id=status_id,
+                user_id=uid,
+            )
 
             for eq in data.equipment:
                 heater_type: HeaterType | None = await self.session.scalar(
