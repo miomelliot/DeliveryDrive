@@ -1,8 +1,9 @@
 # src/api/auth.py
+from typing import Tuple
 
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import Result, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import (
@@ -28,13 +29,13 @@ async def login(
     Аутентификация по email и паролю.
     Возвращает JWT access token.
     """
-    result = await session.execute(select(User).where(User.email == form_data.username))
+    result: Result[Tuple[User]] = await session.execute(select(User).where(User.email == form_data.username))
     user: User | None = result.scalar_one_or_none()
 
     if user is None or not verify_password(form_data.password, user.password_hash):
         _raise_401("Неверный логин или пароль")
 
-    token = create_access_token(user_id=str(user.id), role=user.role.name)
+    token: str = create_access_token(user_id=str(user.id), role=user.role.name)
     return Token(access_token=token, token_type="bearer")
 
 
@@ -51,7 +52,7 @@ async def get_current_user(
     except Exception:
         _raise_401("Недействительный или просроченный токен")
 
-    result = await session.execute(select(User).where(User.id == payload.sub))
+    result: Result[Tuple[User]] = await session.execute(select(User).where(User.id == payload.sub))
     user: User | None = result.scalar_one_or_none()
 
     if user is None:
