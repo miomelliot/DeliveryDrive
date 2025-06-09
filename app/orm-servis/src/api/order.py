@@ -1,16 +1,20 @@
 # src/api/order.py
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Order
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
 from src.repositories.order import OrderRepository
+from src.repositories.order_chart import OrderChartRepository
+from src.repositories.order_detail_read import OrderDetailRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.order import OrderCreate
-from src.utils.http_error import _raise_400
+from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
+from src.utils.http_error import _raise_400, _raise_404
 
 router = APIRouter(prefix="/order", tags=["Order"])
 
@@ -32,6 +36,34 @@ async def create_order(
         _raise_400(e)
 
 
+@router.get("/{order_id}", response_model=OrderDetailRead)
+async def get_order_detail(
+    order_id: UUID = Path(..., description="ID заказа"),
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> OrderDetailRead:
+    repo = OrderDetailRepository(session)
+    try:
+        return await repo.get_detail(order_id)
+    except Exception as err:
+        _raise_404(str(err))
+
+
+@router.patch("/{order_id}")
+async def update_order_detail(
+    order_id: UUID = Path(..., description="ID заказа"),
+    data: OrderDetailUpdate = Body(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict[str, str]:
+    repo = OrderDetailRepository(session)
+    try:
+        await repo.update_detail(order_id, data)
+        return {"status": "success"}
+    except ValueError as err:
+        _raise_404(str(err))
+
+
 @router.delete("/{order_id}")
 async def delete_order(
     order_id: UUID,
@@ -44,3 +76,21 @@ async def delete_order(
         return {"detail": f"Заказ {order_id} удалён"}
     except ValueError as e:
         _raise_400(e)
+
+
+@router.get("/status", response_model=list[str])
+async def get_order_status(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: CurrentUser = Depends(get_current_user),
+) -> list[str]:
+    repo = OrderChartRepository(session)
+    return await repo.get_unique_descriptions()
+
+
+@router.get("/courier-name", response_model=list[str])
+async def get_courier_full_names(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: CurrentUser = Depends(get_current_user),
+) -> list[str]:
+    repo = OrderChartRepository(session)
+    return await repo.get_unique_full_names()

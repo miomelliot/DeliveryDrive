@@ -21,21 +21,3 @@ async def get_order_chart(
 ) -> list[OrderChartRead]:
     repo = OrderChartRepository(session)
     return await repo.get_chart(filters)
-
-
-@router.get("/descriptions", response_model=list[str])
-async def get_order_status_descriptions(
-    session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: CurrentUser = Depends(get_current_user),
-) -> list[str]:
-    repo = OrderChartRepository(session)
-    return await repo.get_unique_descriptions()
-
-
-@router.get("/courier-full-names", response_model=list[str])
-async def get_courier_full_names(
-    session: Annotated[AsyncSession, Depends(get_session)],
-    current_user: CurrentUser = Depends(get_current_user),
-) -> list[str]:
-    repo = OrderChartRepository(session)
-    return await repo.get_unique_full_names()
