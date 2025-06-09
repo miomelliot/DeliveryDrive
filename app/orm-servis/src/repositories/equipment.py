@@ -18,56 +18,54 @@ class EquipmentRepository:
         self.session: AsyncSession = session
 
     async def add_equipment(self, data: EquipmentCreate) -> Equipment:
-        async with self.session.begin():
-            dup: UUID | None = await self.session.scalar(
-                select(Equipment.id).where(Equipment.serial_number == data.serial_number)
-            )
-            if dup:
-                _raise_409("Серийный номер уже существует")
+        dup: UUID | None = await self.session.scalar(
+            select(Equipment.id).where(Equipment.serial_number == data.serial_number)
+        )
+        if dup:
+            _raise_409("Серийный номер уже существует")
 
-            # 1. HeaterType (создаём при необходимости)
-            heater_type: HeaterType | None = await self.session.scalar(
-                select(HeaterType).where(HeaterType.model == data.model)
+        # 1. HeaterType (создаём при необходимости)
+        heater_type: HeaterType | None = await self.session.scalar(
+            select(HeaterType).where(HeaterType.model == data.model)
+        )
+        if not heater_type:
+            heater_type = HeaterType(
+                model=data.model,
+                price=data.price,
+                weight=data.weight,
             )
-            if not heater_type:
-                heater_type = HeaterType(
-                    model=data.model,
-                    price=data.price,
-                    weight=data.weight,
-                )
-                self.session.add(heater_type)
-                await self.session.flush()
-
-            # 2. «Available» статус
-            status_id: int | None = await self.session.scalar(
-                select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
-            )
-            if status_id is None:
-                _raise_500("Статус 'available' не найден в справочнике EquipmentStatus")
-
-            # 3. Первый склад + его адрес
-            warehouse: Warehouse | None = await self.session.scalar(select(Warehouse).limit(1))
-            if warehouse is None:
-                _raise_500("Не найдено ни одного склада – база не инициализирована")
-
-            # 4. Сам объект оборудования
-            equipment = Equipment(
-                heater_type_id=heater_type.id,
-                serial_number=data.serial_number,
-                equipment_status_id=status_id,
-                warehouse_id=warehouse.id,
-                current_address_id=warehouse.address_id,
-            )
-            self.session.add(equipment)
+            self.session.add(heater_type)
             await self.session.flush()
 
-            first_maintenance = Maintenance(
-                equipment_id=equipment.id,
-                date=date.today(),
-            )
-            self.session.add(first_maintenance)
+        # 2. «Available» статус
+        status_id: int | None = await self.session.scalar(
+            select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
+        )
+        if status_id is None:
+            _raise_500("Статус 'available' не найден в справочнике EquipmentStatus")
 
-        # вне контекста транзакции можно обновить объект
+        # 3. Первый склад + его адрес
+        warehouse: Warehouse | None = await self.session.scalar(select(Warehouse).limit(1))
+        if warehouse is None:
+            _raise_500("Не найдено ни одного склада – база не инициализирована")
+
+        # 4. Сам объект оборудования
+        equipment = Equipment(
+            heater_type_id=heater_type.id,
+            serial_number=data.serial_number,
+            equipment_status_id=status_id,
+            warehouse_id=warehouse.id,
+            current_address_id=warehouse.address_id,
+        )
+        self.session.add(equipment)
+        await self.session.flush()
+
+        first_maintenance = Maintenance(
+            equipment_id=equipment.id,
+            date=date.today(),
+        )
+        self.session.add(first_maintenance)
+
         await self.session.refresh(equipment)
         return equipment
 
