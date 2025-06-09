@@ -1,7 +1,7 @@
 # src/schemas/schemas.py
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SerializationInfo, field_serializer
 
 from src.db.models import Role
 
@@ -36,5 +36,5 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer("role")
-    def _serialize_role(self, v, _info) -> str:
+    def _serialize_role(self, v: Role | str, info: SerializationInfo) -> str:
         return v.name if isinstance(v, Role) else v
