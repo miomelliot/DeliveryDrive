@@ -14,7 +14,7 @@ class EquipmentList(BaseModel):
 class OrderCreate(BaseModel):
     phone: str
     name: str | None = None
-    location: str = Field(min_length=5)  # объединённый адрес: city, street, building распарсить по , макс 3 элемента
+    location: str = Field(min_length=5)
     window_start: time = time(9)
     window_end: time = time(18)
     rent_start: date

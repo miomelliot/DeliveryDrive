@@ -40,6 +40,38 @@ def uuid_pk() -> Mapped[UUID]:
 
 
 # ──────────────── Reference ────────────────
+class BaseLookup(Base):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+    code: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text)
+
+
+class OrderStatus(BaseLookup):
+    __tablename__ = "order_status"
+    id: Mapped[int] = mapped_column("status_id", Integer, primary_key=True, autoincrement=True)
+
+
+class EquipmentStatus(BaseLookup):
+    __tablename__ = "equipment_status"
+    id: Mapped[int] = mapped_column("equipment_status_id", Integer, primary_key=True, autoincrement=True)
+
+
+class InvoiceStatus(BaseLookup):
+    __tablename__ = "invoice_status"
+    id: Mapped[int] = mapped_column("invoice_status_id", Integer, primary_key=True, autoincrement=True)
+
+
+class EventType(BaseLookup):
+    __tablename__ = "event_type"
+    id: Mapped[int] = mapped_column("event_type_id", Integer, primary_key=True, autoincrement=True)
+
+
 class Role(Base):
     __tablename__ = "role"
     id: Mapped[int] = mapped_column(
@@ -49,54 +81,6 @@ class Role(Base):
         autoincrement=True,
     )
     name: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
-
-
-class OrderStatus(Base):
-    __tablename__ = "order_status"
-    id: Mapped[int] = mapped_column(
-        "status_id",
-        Integer,
-        primary_key=True,
-        autoincrement=True,
-    )
-    code: Mapped[str] = mapped_column(Text, unique=True)
-    description: Mapped[str] = mapped_column(Text)
-
-
-class EquipmentStatus(Base):
-    __tablename__ = "equipment_status"
-    id: Mapped[int] = mapped_column(
-        "equipment_status_id",
-        Integer,
-        primary_key=True,
-        autoincrement=True,
-    )
-    code: Mapped[str] = mapped_column(Text, unique=True)
-    description: Mapped[str] = mapped_column(Text)
-
-
-class InvoiceStatus(Base):
-    __tablename__ = "invoice_status"
-    id: Mapped[int] = mapped_column(
-        "invoice_status_id",
-        Integer,
-        primary_key=True,
-        autoincrement=True,
-    )
-    code: Mapped[str] = mapped_column(Text, unique=True)
-    description: Mapped[str] = mapped_column(Text)
-
-
-class EventType(Base):
-    __tablename__ = "event_type"
-    id: Mapped[int] = mapped_column(
-        "event_type_id",
-        Integer,
-        primary_key=True,
-        autoincrement=True,
-    )
-    code: Mapped[str] = mapped_column(Text, unique=True)
-    description: Mapped[str] = mapped_column(Text)
 
 
 class HeaterType(Base):
