@@ -6,6 +6,11 @@ ENV UV_COMPILE_BYTECODE=1
 ENV TZ=Europe/Moscow
 ENV UV_LINK_MODE=copy
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libffi-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
