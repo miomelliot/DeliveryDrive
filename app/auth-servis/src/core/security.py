@@ -1,48 +1,58 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Dict, Union, cast
+from uuid import UUID
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from src.core.config import Settings, get_settings
-from src.schemas.schemas import TokenPayload
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-settings: Settings = get_settings()
+_cfg: Settings = get_settings()
 
-
-# --- Password hash ---
-def hash_password(password: str) -> str:
-    return cast(str, pwd_context.hash(password))
+# ── конфигурация Argon2 ───────────────────────────────────────
+_pwd_ctx: CryptContext = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-def verify_password(password: str, password_hash: str) -> bool:
-    return cast(bool, pwd_context.verify(password, password_hash))
+# ─────────────────────── password helpers ─────────────────────
+def hash_password(raw: str) -> str:
+    """Вернуть Argon2-хеш пароля."""
+    return cast(str, _pwd_ctx.hash(raw))
 
 
-# --- JWT ---
-def create_access_token(*, user_id: str, role: str, expires_delta: timedelta | None = None) -> str:
-    expire: datetime = datetime.now(timezone.utc) + (expires_delta or settings.access_token_expire)
-    to_encode: dict[str, Any] = {
+def verify_password(raw: str, hashed: str) -> bool:
+    """Проверить совпадение пароля с хешем."""
+    return cast(bool, _pwd_ctx.verify(raw, hashed))
+
+
+# ─────────────────────── JWT helpers ──────────────────────────
+def create_access_token(*, user_id: UUID, role: str) -> str:
+    """
+    Сформировать access-token.
+
+    exp пишем как Unix-timestamp (int), чтобы гарантировать JSON-совместимость.
+    """
+    exp_ts: int = int((datetime.utcnow() + _cfg.access_token_expire).timestamp())
+    payload: Dict[str, Union[str, int]] = {
         "sub": str(user_id),
         "role": role,
-        "exp": int(expire.timestamp()),
+        "exp": exp_ts,
     }
-    return cast(
-        str,
-        jwt.encode(
-            to_encode,
-            settings.jwt_secret.get_secret_value(),
-            algorithm=settings.jwt_alg,
-        ),
-    )
+    return cast(str, jwt.encode(payload, _cfg.jwt_secret, algorithm=_cfg.jwt_alg))
 
 
-def decode_access_token(token: str) -> TokenPayload:
+def decode_access_token(token: str) -> Dict[str, Union[str, int]]:
+    """
+    Декодировать JWT, вернуть payload.
+
+    При ошибке подписи/срока — ValueError.
+    """
     try:
-        payload: dict[str, Any] = jwt.decode(
-            token, settings.jwt_secret.get_secret_value(), algorithms=[settings.jwt_alg]
+        decoded: Dict[str, str | int] = cast(
+            Dict[str, Union[str, int]],
+            jwt.decode(token, _cfg.jwt_secret, algorithms=[_cfg.jwt_alg]),
         )
-        return TokenPayload(**payload)
-    except JWTError as err:
-        raise ValueError("Invalid or expired token") from err
+        return decoded
+    except JWTError as exc:
+        raise ValueError("Invalid or expired token") from exc

@@ -3,13 +3,13 @@ from typing import cast
 
 from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_pwd_ctx = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-# --- Password hash ---
+# ─────────────────────── password helpers ─────────────────────
 def hash_password(password: str) -> str:
-    return cast(str, pwd_context.hash(password))
+    return cast(str, _pwd_ctx.hash(password))
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return cast(bool, pwd_context.verify(password, password_hash))
+    return cast(bool, _pwd_ctx.verify(password, password_hash))

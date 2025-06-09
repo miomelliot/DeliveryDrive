@@ -1,9 +1,10 @@
 # src/api/auth.py
-from typing import Tuple
+from typing import Dict
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import Result, select
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import (
@@ -13,59 +14,58 @@ from src.core.security import (
 )
 from src.db.models import User
 from src.db.session import get_session
-from src.schemas.schemas import Token, TokenPayload, UserOut
+from src.schemas.schemas import AuthLogin, Token, UserOut
 from src.utils.http_error import _raise_401
 
-router = APIRouter(prefix="/auth", tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+router = APIRouter(prefix="/auth", tags=["Auth"])
+
+# Bearer-заголовок вида «Authorization: Bearer <JWT>»
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
-@router.post("/login", response_model=Token)
+# ───────────────────────── login ────────────────────────────
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="Login → получить access-token",
+)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    data: AuthLogin,
     session: AsyncSession = Depends(get_session),
 ) -> Token:
-    """
-    Аутентификация по email и паролю.
-    Возвращает JWT access token.
-    """
-    result: Result[Tuple[User]] = await session.execute(select(User).where(User.email == form_data.username))
-    user: User | None = result.scalar_one_or_none()
+    user: User | None = await session.scalar(select(User).where(User.email == data.email))
 
-    if user is None or not verify_password(form_data.password, user.password_hash):
-        _raise_401("Неверный логин или пароль")
+    if user is None or not verify_password(data.password, user.password_hash):
+        _raise_401("Неверный email или пароль")
 
-    token: str = create_access_token(user_id=str(user.id), role=user.role.name)
-    return Token(access_token=token, token_type="bearer")
+    token: str = create_access_token(user_id=user.id, role=user.role.name)
+    return Token(access_token=token)
 
 
+# ─────────────────── current user dependency ────────────────
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    """
-    Извлекает пользователя из токена доступа.
-    Используется как зависимость в защищённых маршрутах.
-    """
+    """Извлечь User из Bearer-токена (используй как Depends)."""
+    if creds is None:
+        _raise_401("Отсутствует токен авторизации")
+
+    payload: Dict[str, str | int] = decode_access_token(creds.credentials)
+    sub_raw: str | int = payload["sub"]
     try:
-        payload: TokenPayload = decode_access_token(token)
+        user_id: UUID = UUID(str(sub_raw))
     except Exception:
-        _raise_401("Недействительный или просроченный токен")
+        _raise_401("Неверный или просроченный токен")
 
-    result: Result[Tuple[User]] = await session.execute(select(User).where(User.id == payload.sub))
-    user: User | None = result.scalar_one_or_none()
-
+    user: User | None = await session.get(User, user_id)
     if user is None:
         _raise_401("Пользователь не найден")
 
     return user
 
 
-@router.get("/me", response_model=UserOut)
-async def read_me(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    """
-    Возвращает информацию о текущем пользователе (на основе JWT).
-    """
+# ───────────────────────── /me ───────────────────────────────
+@router.get("/me", response_model=UserOut, summary="Текущий пользователь")
+async def read_me(current_user: User = Depends(get_current_user)) -> User:
     return current_user

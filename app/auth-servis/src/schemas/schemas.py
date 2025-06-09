@@ -1,11 +1,13 @@
+# src/schemas/schemas.py
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-class AuthRequest(BaseModel):
-    email: EmailStr
-    password: str
+# ─────────────────────────── Auth ────────────────────────────
+class AuthLogin(BaseModel):
+    email: EmailStr = Field(..., examples=["user@example.com"])
+    password: str = Field(..., min_length=8)
 
 
 class Token(BaseModel):
