@@ -9,7 +9,6 @@ from src.api import (
     invoice_chart,
     order,
     order_chart,
-    order_detail_read,
     routing_chart,
     tracking_chart,
     user,
@@ -25,7 +24,6 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 # entities
 app.include_router(user.router)
 app.include_router(order.router)
-app.include_router(order_detail_read.router)
 app.include_router(equipment.router)
 # chart
 app.include_router(user_chart.router)
