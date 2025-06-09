@@ -1,13 +1,13 @@
 # src/repositories/invoice_chart.py
+
 from datetime import date
 from decimal import Decimal
-from typing import Sequence, Tuple
+from typing import Any, Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import Label, Result, RowMapping, Select, String, cast, func, select
+from sqlalchemy import ColumnElement, Integer, Label, Numeric, Result, RowMapping, Select, String, cast, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.types import Integer, Numeric
 
 from src.db.models import Client, HeaterType, Invoice, InvoiceStatus, Order, OrderItem
 from src.schemas.invoice_chart import (
@@ -22,11 +22,11 @@ class InvoiceChartRepository:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: InvoiceChartFilter) -> list[InvoiceChartRead]:
-        days_rent_expr: Label[int] = cast(func.date_part("day", Order.rent_end - Order.rent_start), Integer).label(
-            "days_rent"
-        )
+        # 📌 Выражения
+        days_expr: ColumnElement[Any] = Order.rent_end - Order.rent_start
+        days_rent_expr: Label[int] = cast(days_expr, Integer).label("days_rent")
         price_expr: Label[Decimal] = cast(
-            func.sum(HeaterType.price * OrderItem.quantity * days_rent_expr), Numeric(12, 2)
+            func.sum(HeaterType.price * OrderItem.quantity * days_expr), Numeric(12, 2)
         ).label("price")
 
         stmt: Select[Tuple[UUID, date, str, int, Decimal, float, str]] = (
@@ -96,12 +96,12 @@ class InvoiceChartRepository:
         res: Result[Tuple[UUID, date, str, int, Decimal, float, str]] = await self.session.execute(stmt)
         rows: Sequence[Row[Tuple[UUID, date, str, int, Decimal, float, str]]] = res.fetchall()
 
-        return [InvoiceChartRead.model_validate(dict(r._mapping)) for r in rows]
+        return [InvoiceChartRead.model_validate(dict(r)) for r in rows]
 
     async def get_widget(self) -> InvoiceWidgetRead:
         stmt: Select[Tuple[int, float, float]] = select(
             func.count().filter(InvoiceStatus.code == "issued").label("total_active_contracts"),
-            func.sum(Invoice.amount).label("potential_income"),
+            func.coalesce(func.sum(Invoice.amount), 0).label("potential_income"),
             func.coalesce(func.avg(Invoice.amount), 0).label("monthly_average"),
         ).join(InvoiceStatus, Invoice.invoice_status_id == InvoiceStatus.id)
 
@@ -109,7 +109,7 @@ class InvoiceChartRepository:
         row: RowMapping = res.one()._mapping
 
         return InvoiceWidgetRead(
-            total_active_contracts=row["total_active_contracts"] or 0,
-            potential_income=row["potential_income"] or 0.0,
-            monthly_average=row["monthly_average"] or 0.0,
+            total_active_contracts=row["total_active_contracts"],
+            potential_income=row["potential_income"],
+            monthly_average=row["monthly_average"],
         )
