@@ -1,27 +1,24 @@
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
-# --- Для запроса ---
 class AuthRequest(BaseModel):
     email: EmailStr
     password: str
 
 
-# --- Для успешного ответа (JWT) ---
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
 
 class TokenPayload(BaseModel):
-    sub: UUID = Field(..., description="User UUID")
-    role: str = Field(..., description="User role")
-    exp: int = Field(..., description="Expiration timestamp")
+    sub: UUID
+    role: str
+    exp: int
 
 
-# --- Для возврата данных пользователя (например, /me) ---
 class UserOut(BaseModel):
     id: UUID
     email: EmailStr
@@ -31,5 +28,4 @@ class UserOut(BaseModel):
     avatar_path: str | None = None
     role: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

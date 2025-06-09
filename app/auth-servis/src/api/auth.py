@@ -1,9 +1,8 @@
 # src/api/auth.py
-from typing import Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import Result, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import (
@@ -14,6 +13,7 @@ from src.core.security import (
 from src.db.models import User
 from src.db.session import get_session
 from src.schemas.schemas import Token, TokenPayload, UserOut
+from src.utils.http_error import _raise_401
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -24,17 +24,17 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_session),
 ) -> Token:
-    result: Result[Tuple[User]] = await session.execute(select(User).where(User.email == form_data.username))
+    """
+    Аутентификация по email и паролю.
+    Возвращает JWT access token.
+    """
+    result = await session.execute(select(User).where(User.email == form_data.username))
     user: User | None = result.scalar_one_or_none()
 
     if user is None or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-        )
+        _raise_401("Неверный логин или пароль")
 
-    token: str = create_access_token(user_id=str(user.id), role=user.role.name)
-
+    token = create_access_token(user_id=str(user.id), role=user.role.name)
     return Token(access_token=token, token_type="bearer")
 
 
@@ -42,19 +42,20 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
+    """
+    Извлекает пользователя из токена доступа.
+    Используется как зависимость в защищённых маршрутах.
+    """
     try:
         payload: TokenPayload = decode_access_token(token)
-    except Exception as err:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Недействительный или просроченный токен",
-        ) from err
+    except Exception:
+        _raise_401("Недействительный или просроченный токен")
 
-    result: Result[Tuple[User]] = await session.execute(select(User).where(User.id == payload.sub))
+    result = await session.execute(select(User).where(User.id == payload.sub))
     user: User | None = result.scalar_one_or_none()
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден")
+        _raise_401("Пользователь не найден")
 
     return user
 
@@ -63,5 +64,7 @@ async def get_current_user(
 async def read_me(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """Отдаём пользователя, извлечённого из JWT."""
+    """
+    Возвращает информацию о текущем пользователе (на основе JWT).
+    """
     return current_user
