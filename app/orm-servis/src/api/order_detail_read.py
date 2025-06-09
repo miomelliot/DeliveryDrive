@@ -5,7 +5,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
+from src.dependencies.auth import get_current_user
 from src.repositories.order_detail_read import OrderDetailRepository
+from src.schemas.auth import CurrentUser
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
 
 router = APIRouter(prefix="/order", tags=["Order"])
@@ -15,6 +17,7 @@ router = APIRouter(prefix="/order", tags=["Order"])
 async def get_order_detail(
     order_id: UUID = Path(..., description="ID заказа"),
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> OrderDetailRead:
     repo = OrderDetailRepository(session)
     try:
@@ -28,6 +31,7 @@ async def update_order_detail(
     order_id: UUID = Path(..., description="ID заказа"),
     data: OrderDetailUpdate = Body(...),
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = OrderDetailRepository(session)
     try:

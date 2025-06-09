@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Order
 from src.db.session import get_session
+from src.dependencies.auth import get_current_user
 from src.repositories.order import OrderRepository
+from src.schemas.auth import CurrentUser
 from src.schemas.order import OrderCreate
 from src.utils.http_error import _raise_400
 
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/order", tags=["Order"])
 async def create_order(
     data: OrderCreate,
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = OrderRepository(session)
     try:
@@ -33,6 +36,7 @@ async def create_order(
 async def delete_order(
     order_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = OrderRepository(session)
     try:

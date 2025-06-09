@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import User
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
 from src.repositories.user import UserBaseRepository, UserCourierRepository, UserManagerRepository
+from src.schemas.auth import CurrentUser
 from src.schemas.user import (
     UserCourierCreate,
     UserCourierRead,
@@ -32,7 +32,7 @@ async def create_manager_user(
     data: UserManagerCreate = Depends(),
     icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
     try:
