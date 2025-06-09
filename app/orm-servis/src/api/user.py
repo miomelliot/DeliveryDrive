@@ -47,6 +47,7 @@ async def update_manager_user(
     data: UserManagerUpdate = Depends(),
     icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
     try:
@@ -59,12 +60,19 @@ async def update_manager_user(
 
 
 @router.get("/manager", response_model=list[UserManagerRead])
-async def list_managers(session: AsyncSession = Depends(get_session)) -> list[UserManagerRead]:
+async def list_managers(
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> list[UserManagerRead]:
     return await UserManagerRepository(session).list()
 
 
 @router.get("/manager/{user_id}", response_model=UserManagerRead)
-async def get_manager(user_id: UUID, session: AsyncSession = Depends(get_session)) -> UserManagerRead:
+async def get_manager(
+    user_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> UserManagerRead:
     result: UserManagerRead | None = await UserManagerRepository(session).get(user_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -81,6 +89,7 @@ async def create_courier_user(
     data: UserCourierCreate = Depends(),
     icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
     try:
@@ -95,6 +104,7 @@ async def update_courier_user(
     data: UserCourierUpdate = Depends(),
     icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
     try:
@@ -107,12 +117,19 @@ async def update_courier_user(
 
 
 @router.get("/courier", response_model=list[UserCourierRead])
-async def list_couriers(session: AsyncSession = Depends(get_session)) -> list[UserCourierRead]:
+async def list_couriers(
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> list[UserCourierRead]:
     return await UserCourierRepository(session).list()
 
 
 @router.get("/courier/{user_id}", response_model=UserCourierRead)
-async def get_courier(user_id: UUID, session: AsyncSession = Depends(get_session)) -> UserCourierRead:
+async def get_courier(
+    user_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> UserCourierRead:
     result: UserCourierRead | None = await UserCourierRepository(session).get(user_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -124,6 +141,7 @@ async def get_courier(user_id: UUID, session: AsyncSession = Depends(get_session
 async def delete_user(
     user_id: UUID,
     session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> JSONResponse:
     """Удалить любого пользователя по ID (404, если не найден)."""
     deleted: bool = await UserBaseRepository(session).delete(user_id)
