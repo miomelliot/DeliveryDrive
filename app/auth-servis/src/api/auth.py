@@ -1,11 +1,12 @@
 # src/api/auth.py
-from typing import Dict
+from typing import Dict, Tuple
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload  #  ← добавили
 
 from src.core.security import (
     create_access_token,
@@ -18,27 +19,22 @@ from src.schemas.schemas import AuthLogin, Token, UserOut
 from src.utils.http_error import _raise_401
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-# Bearer-заголовок вида «Authorization: Bearer <JWT>»
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ───────────────────────── login ────────────────────────────
-@router.post(
-    "/login",
-    response_model=Token,
-    summary="Login → получить access-token",
-)
+@router.post("/login", response_model=Token, summary="Login → получить access-token")
 async def login(
     data: AuthLogin,
     session: AsyncSession = Depends(get_session),
 ) -> Token:
-    user: User | None = await session.scalar(select(User).where(User.email == data.email))
+    stmt: Select[Tuple[User]] = select(User).options(selectinload(User.role)).where(User.email == data.email)
+    user: User | None = await session.scalar(stmt)
 
     if user is None or not verify_password(data.password, user.password_hash):
         _raise_401("Неверный email или пароль")
 
-    token: str = create_access_token(user_id=user.id, role=user.role.name)
+    token = create_access_token(user_id=user.id, role=user.role.name)
     return Token(access_token=token)
 
 
@@ -47,18 +43,17 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    """Извлечь User из Bearer-токена (используй как Depends)."""
     if creds is None:
         _raise_401("Отсутствует токен авторизации")
 
     payload: Dict[str, str | int] = decode_access_token(creds.credentials)
-    sub_raw: str | int = payload["sub"]
     try:
-        user_id: UUID = UUID(str(sub_raw))
+        user_id = UUID(str(payload["sub"]))
     except Exception:
         _raise_401("Неверный или просроченный токен")
 
-    user: User | None = await session.get(User, user_id)
+    stmt: Select[Tuple[User]] = select(User).options(selectinload(User.role)).where(User.id == user_id)
+    user: User | None = await session.scalar(stmt)
     if user is None:
         _raise_401("Пользователь не найден")
 
@@ -67,5 +62,13 @@ async def get_current_user(
 
 # ───────────────────────── /me ───────────────────────────────
 @router.get("/me", response_model=UserOut, summary="Текущий пользователь")
-async def read_me(current_user: User = Depends(get_current_user)) -> User:
-    return current_user
+async def read_me(current_user: User = Depends(get_current_user)) -> UserOut:
+    return UserOut(
+        id=current_user.id,
+        email=current_user.email,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        phone=current_user.phone,
+        avatar_path=current_user.avatar_path,
+        role=current_user.role.name,
+    )

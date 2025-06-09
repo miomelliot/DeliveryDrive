@@ -19,7 +19,7 @@ class EquipmentChartRepository:
 
     async def get_chart(self, filters: EquipmentChartFilter) -> list[EquipmentChartRead]:
         # 📋 Базовый SELECT
-        stmt: Select[Tuple[UUID, date, str, float, float, str, str]] = (
+        stmt: Select[Tuple[UUID, date | None, str, float, float, str, str]] = (
             select(
                 Equipment.id,
                 Maintenance.date,
@@ -68,7 +68,7 @@ class EquipmentChartRepository:
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
         # 🧾 Выполнение запроса
-        res: Result[Tuple[UUID, date, str, float, float, str, str]] = await self.session.execute(stmt)
-        rows: Sequence[Row[Tuple[UUID, date, str, float, float, str, str]]] = res.fetchall()
+        res: Result[Tuple[UUID, date | None, str, float, float, str, str]] = await self.session.execute(stmt)
+        rows: Sequence[Row[Tuple[UUID, date | None, str, float, float, str, str]]] = res.fetchall()
 
         return [EquipmentChartRead.model_validate(r._asdict()) for r in rows]
