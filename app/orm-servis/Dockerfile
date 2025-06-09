@@ -1,18 +1,17 @@
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 WORKDIR /app
-ENV TZ=Europe/Moscow \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    PYTHONUNBUFFERED=1
 
-# Копируем только то, что нужно для зависимостей
-COPY pyproject.toml .
-COPY uv.lock .
+ENV UV_COMPILE_BYTECODE=1
+ENV TZ=Europe/Moscow
+ENV UV_LINK_MODE=copy
+
+
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
-# исходники
 COPY src ./src
 COPY static ./static
 RUN mkdir -p ./static/icons
