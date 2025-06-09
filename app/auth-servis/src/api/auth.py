@@ -34,7 +34,7 @@ async def login(
     if user is None or not verify_password(data.password, user.password_hash):
         _raise_401("Неверный email или пароль")
 
-    token = create_access_token(user_id=user.id, role=user.role.name)
+    token: str = create_access_token(user_id=user.id, role=user.role.name)
     return Token(access_token=token)
 
 

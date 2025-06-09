@@ -7,6 +7,8 @@ from fastapi import HTTPException
 def _raise_400(exc: ValueError) -> NoReturn:
     raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+def _raise_401(message: str = "Неавторизован") -> NoReturn:
+    raise HTTPException(status_code=401, detail=message)
 
 def _raise_404(message: str = "Не найдено") -> NoReturn:
     raise HTTPException(status_code=404, detail=message)
