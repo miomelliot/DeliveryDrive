@@ -4,10 +4,10 @@ services:
     container_name: deliverydrive-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     deliverydrive
+      POSTGRES_USER    : deliverydrive
       POSTGRES_PASSWORD: deliverydrive
-      POSTGRES_DB:       deliverydrive
-      TZ:                Europe/Moscow
+      POSTGRES_DB      : deliverydrive
+      TZ               : Europe/Moscow
     ports:
       - "5432:5432"
     volumes:
@@ -21,20 +21,18 @@ services:
     depends_on: [db]
     restart: unless-stopped
     environment:
-    
-      POSTGRES_USER:     deliverydrive
-      POSTGRES_PASSWORD: deliverydrive
-      POSTGRES_HOST:     db
-      POSTGRES_PORT:     5432
-      POSTGRES_DB:       deliverydrive
-      TZ:                Europe/Moscow
+      POSTGRES_USER       : deliverydrive
+      POSTGRES_PASSWORD   : deliverydrive
+      POSTGRES_HOST       : db
+      POSTGRES_PORT       : 5432
+      POSTGRES_DB         : deliverydrive
+      TZ                  : Europe/Moscow
+      JWT_SECRET          : "change-this-in-prod"
+      JWT_ALG             : "HS256"
+      ACCESS_TOKEN_TTL_MIN: 43200  # 30 дней
     volumes:
       - ./app/orm-servis/static:/app/static
-    command: >-
-      bash -c "
-        python -m src.db.init_db &&
-        uvicorn src.main:app --host 0.0.0.0 --port 8000
-      "
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8080:8000"
 
@@ -58,18 +56,18 @@ services:
     depends_on: [db]
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     deliverydrive
-      POSTGRES_PASSWORD: deliverydrive
-      POSTGRES_HOST:     db
-      POSTGRES_PORT:     5432
-      POSTGRES_DB:       deliverydrive
-      TZ:                Europe/Moscow
-    command: >-
-      bash -c "
-        uvicorn src.main:app --host 0.0.0.0 --port 8001
-      "
+      POSTGRES_USER       : deliverydrive
+      POSTGRES_PASSWORD   : deliverydrive
+      POSTGRES_HOST       : db
+      POSTGRES_PORT       : 5432
+      POSTGRES_DB         : deliverydrive
+      TZ                  : Europe/Moscow
+      JWT_SECRET          : "change-this-in-prod"
+      JWT_ALG             : "HS256"
+      ACCESS_TOKEN_TTL_MIN: 43200  # 30 дней
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001
     ports:
-      - "8081:8001"
+      - "9090:8001"
 
 volumes:
   db_data:
