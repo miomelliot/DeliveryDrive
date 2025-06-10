@@ -20,11 +20,11 @@ class _UserOutBase(_UserInBase):
 
 # ----- input -----
 class UserManagerCreate(_UserInBase):
-    password: str
+    password: str = Field(..., min_length=8)
 
 
 class UserCourierCreate(_UserInBase):
-    password: str
+    password: str = Field(..., min_length=8)
     start_time: time = time(hour=9)
     end_time: time = time(hour=18)
     transport_name: Literal["walk", "bike", "scooter", "car", "van"] = "walk"
