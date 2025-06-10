@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Union, cast
 from uuid import UUID
 
@@ -33,8 +33,8 @@ def create_access_token(*, user_id: UUID, role: str) -> str:
 
     exp пишем как Unix-timestamp (int), чтобы гарантировать JSON-совместимость.
     """
-    exp_ts: int = int((datetime.utcnow() + _cfg.access_token_expire).timestamp())
-    payload: Dict[str, Union[str, int]] = {
+    exp_ts: int = int((datetime.now(timezone.utc) + _cfg.access_token_expire).timestamp())
+    payload: Dict[str, str | int] = {
         "sub": str(user_id),
         "role": role,
         "exp": exp_ts,
@@ -42,7 +42,7 @@ def create_access_token(*, user_id: UUID, role: str) -> str:
     return cast(str, jwt.encode(payload, _cfg.jwt_secret, algorithm=_cfg.jwt_alg))
 
 
-def decode_access_token(token: str) -> Dict[str, Union[str, int]]:
+def decode_access_token(token: str) -> Dict[str, str | int]:
     """
     Декодировать JWT, вернуть payload.
 
@@ -50,7 +50,7 @@ def decode_access_token(token: str) -> Dict[str, Union[str, int]]:
     """
     try:
         decoded: Dict[str, str | int] = cast(
-            Dict[str, Union[str, int]],
+            Dict[str, str | int],
             jwt.decode(token, _cfg.jwt_secret, algorithms=[_cfg.jwt_alg]),
         )
         return decoded
