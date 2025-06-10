@@ -21,11 +21,11 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
 
-  orm-servis:
+  orm-service:
     build:
-      context: ./app/orm-servis
-    image: deliverydrive/orm-servis:latest
-    container_name: orm-servis
+      context: ./app/orm-service
+    image: deliverydrive/orm-service:latest
+    container_name: orm-service
     depends_on: [db]
     restart: unless-stopped
     environment:
@@ -39,16 +39,16 @@ services:
       JWT_ALG             : "HS256"
       ACCESS_TOKEN_TTL_MIN: 43200  # 30 дней
     volumes:
-      - ./app/orm-servis/static:/app/static
+      - ./app/orm-service/static:/app/static
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8080:8000"
 
-  auth-servis:
+  auth-service:
     build:
-      context: ./app/auth-servis
-    image: deliverydrive/auth-servis:latest
-    container_name: auth-servis
+      context: ./app/auth-service
+    image: deliverydrive/auth-service:latest
+    container_name: auth-service
     depends_on: [db]
     restart: unless-stopped
     environment:
@@ -66,7 +66,7 @@ services:
       - "9090:9000"
 
   seed-db:
-    image: deliverydrive/orm-servis:latest
+    image: deliverydrive/orm-service:latest
     depends_on: [db]
     environment:
       POSTGRES_USER       : deliverydrive
@@ -77,11 +77,11 @@ services:
     command: python -m src.db.init_db
     restart: "no"
 
-  # backup-servis:
+  # backup-service:
   #   build:
-  #     context: ./app/backup-servis
-  #   image: deliverydrive/backup-servis:latest
-  #   container_name: backup-servis
+  #     context: ./app/backup-service
+  #   image: deliverydrive/backup-service:latest
+  #   container_name: backup-service
   #   depends_on: [db]
   #   restart: unless-stopped
   #   environment:

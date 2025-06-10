@@ -15,7 +15,7 @@ from src.api import (
     user_chart,
 )
 
-app = FastAPI(title="orm-servis")
+app = FastAPI(title="orm-service")
 # static path
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 STATIC_DIR: Path = BASE_DIR / "static"
