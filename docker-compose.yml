@@ -10,6 +10,14 @@ services:
       TZ                  : Europe/Moscow
     ports:
       - "5432:5432"
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=cp %p /var/lib/postgresql/data/pg_wal/%f
+      - -c
+      - wal_level=replica
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -68,6 +76,23 @@ services:
       POSTGRES_DB         : deliverydrive
     command: python -m src.db.init_db
     restart: "no"
+
+  backup-servis:
+    build:
+      context: ./app/backup-servis
+    image: deliverydrive/backup-servis:latest
+    container_name: backup-servis
+    depends_on: [db]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: deliverydrive
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: deliverydrive
+      PGPASSWORD: deliverydrive
+    volumes:
+      - db_data:/var/lib/postgresql/data:ro
+      - ./backups:/backups
 
 volumes:
   db_data:

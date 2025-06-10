@@ -10,7 +10,7 @@ _cfg: Settings = get_settings()
 _pwd_ctx = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-# ─────────────────────── password helpers ─────────────────────
+
 def hash_password(password: str) -> str:
     return cast(str, _pwd_ctx.hash(password))
 
@@ -20,11 +20,6 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def decode_access_token(token: str) -> dict[str, Union[str, int]]:
-    """
-    Декодировать JWT, вернуть payload.
-
-    При ошибке подписи/срока — ValueError.
-    """
     try:
         decoded: dict[str, str | int] = cast(
             dict[str, Union[str, int]],
