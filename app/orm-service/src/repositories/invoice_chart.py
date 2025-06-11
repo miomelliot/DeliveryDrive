@@ -94,7 +94,7 @@ class InvoiceChartRepository:
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
         res: Result[Tuple[UUID, date, str, int, Decimal, float, str]] = await self.session.execute(stmt)
-        rows: Sequence[Row[Tuple[UUID, date, str, int, Decimal, float, str]]] = res.fetchall()
+        rows: Sequence[RowMapping]= res.mappings().all()
 
         return [InvoiceChartRead.model_validate(dict(r)) for r in rows]
 
