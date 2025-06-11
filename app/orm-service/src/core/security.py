@@ -10,7 +10,6 @@ _cfg: Settings = get_settings()
 _pwd_ctx = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-
 def hash_password(password: str) -> str:
     return cast(str, _pwd_ctx.hash(password))
 

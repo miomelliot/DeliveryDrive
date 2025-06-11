@@ -474,7 +474,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
-    { name = "argon2-cffi" },
     { name = "asyncpg" },
     { name = "fastapi", extra = ["standard"] },
     { name = "passlib", extra = ["argon2"] },
@@ -497,7 +496,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
-    { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.12" },
     { name = "passlib", extras = ["argon2"], specifier = ">=1.7.4" },
