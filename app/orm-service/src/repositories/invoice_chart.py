@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any, Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, Integer, Label, Numeric, Result, RowMapping, Select, String, cast, func, select
+from sqlalchemy import Date, Label, Numeric, Result, RowMapping, Select, String, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Client, HeaterType, Invoice, InvoiceStatus, Order, OrderItem
@@ -22,20 +22,26 @@ class InvoiceChartRepository:
 
     async def get_chart(self, filters: InvoiceChartFilter) -> list[InvoiceChartRead]:
         # 📌 Выражения
-        days_expr: ColumnElement[Any] = Order.rent_end - Order.rent_start
-        days_rent_expr: Label[int] = cast(days_expr, Integer).label("days_rent")
-        price_expr: Label[Decimal] = cast(
-            func.sum(HeaterType.price * OrderItem.quantity * days_expr), Numeric(12, 2)
-        ).label("price")
+        days_expr: Label[Any] = (cast(Order.rent_end, Date) - cast(Order.rent_start, Date)).label("days_rent")
 
-        stmt: Select[Tuple[UUID, date, str, int, Decimal, float, str]] = (
+        base_price_expr: Label[float] = func.sum(HeaterType.price * OrderItem.quantity).label("price")
+        total_income_expr: Label[Decimal] = (
+            (
+                func.sum(HeaterType.price * OrderItem.quantity)
+                * (cast(Order.rent_end, Date) - cast(Order.rent_start, Date))
+            )
+            .cast(Numeric(12, 2))
+            .label("total_income")
+        )
+
+        stmt: Select[Tuple[UUID, date, str, int, float, Decimal, str]] = (
             select(
                 Invoice.id,
                 Order.rent_start,
                 Client.phone,
-                days_rent_expr,
-                price_expr,
-                Invoice.amount.label("total_income"),
+                days_expr,
+                base_price_expr,
+                total_income_expr,
                 InvoiceStatus.description.label("status"),
             )
             .join(Order, Order.id == Invoice.order_id)
@@ -46,10 +52,9 @@ class InvoiceChartRepository:
             .group_by(
                 Invoice.id,
                 Order.rent_start,
-                Client.phone,
-                Invoice.amount,
-                InvoiceStatus.description,
                 Order.rent_end,
+                Client.phone,
+                InvoiceStatus.description,
             )
         )
 
@@ -81,9 +86,9 @@ class InvoiceChartRepository:
             "id": Invoice.id,
             "rent_start": Order.rent_start,
             "phone": Client.phone,
-            "days_rent": days_rent_expr,
-            "price": price_expr,
-            "total_income": Invoice.amount,
+            "days_rent": days_expr,
+            "price": base_price_expr,
+            "total_income": total_income_expr,
             "status": InvoiceStatus.description,
         }
         sort_col = field_map.get(filters.order_by, Invoice.id)
@@ -92,10 +97,10 @@ class InvoiceChartRepository:
         # 📄 Пагинация
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        res: Result[Tuple[UUID, date, str, int, Decimal, float, str]] = await self.session.execute(stmt)
+        res: Result[Tuple[UUID, date, str, int, float, Decimal, str]] = await self.session.execute(stmt)
         rows: Sequence[RowMapping] = res.mappings().all()
 
-        return [InvoiceChartRead.model_validate(dict(r)) for r in rows]
+        return [InvoiceChartRead.model_validate(row) for row in rows]
 
     async def get_widget(self) -> InvoiceWidgetRead:
         stmt: Select[Tuple[int, float, float]] = select(
