@@ -11,14 +11,20 @@ from src.db.models import CourierSchedule, Transport, TransportType, User
 from src.schemas.user_chart import UserChartFilter, UserChartRead
 from src.utils.sqlalchemy_expr import full_name_expr
 
+TRANSPORT_NAME_LOCALIZATION: dict[str, str] = {
+    "walk": "Пешком",
+    "bike": "Велосипед",
+    "scooter": "Самокат",
+    "car": "Автомобиль",
+    "van": "Фургон",
+}
+
 
 class UserChartRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
 
     async def get_chart(self, filters: UserChartFilter) -> list[UserChartRead]:
-        # full_name_expr: Label[Any] = func.concat_ws(" ", User.first_name, User.last_name).label("full_name")
-
         stmt: Select[Tuple[UUID, str, str, str, str, time, time]] = (
             select(
                 User.id,
@@ -75,7 +81,7 @@ class UserChartRepository:
                 full_name=r.full_name,
                 phone=r.phone,
                 email=r.email,
-                transport_name=r.transport_name,
+                transport_name=TRANSPORT_NAME_LOCALIZATION.get(r.transport_name) or r.transport_name,
                 work_schedule=f"{r.start_time.strftime('%H:%M')}–{r.end_time.strftime('%H:%M')}",
             )
             for r in rows
