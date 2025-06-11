@@ -6,7 +6,6 @@ from typing import Any, Sequence, Tuple
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, Integer, Label, Numeric, Result, RowMapping, Select, String, cast, func, select
-from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Client, HeaterType, Invoice, InvoiceStatus, Order, OrderItem
@@ -94,7 +93,7 @@ class InvoiceChartRepository:
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
         res: Result[Tuple[UUID, date, str, int, Decimal, float, str]] = await self.session.execute(stmt)
-        rows: Sequence[RowMapping]= res.mappings().all()
+        rows: Sequence[RowMapping] = res.mappings().all()
 
         return [InvoiceChartRead.model_validate(dict(r)) for r in rows]
 
