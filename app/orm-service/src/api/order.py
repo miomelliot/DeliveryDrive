@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import Order
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
+from src.repositories.charts.order_chart import OrderChartRepository
 from src.repositories.order import OrderRepository
-from src.repositories.order_chart import OrderChartRepository
 from src.repositories.order_detail_read import OrderDetailRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.order import OrderCreate

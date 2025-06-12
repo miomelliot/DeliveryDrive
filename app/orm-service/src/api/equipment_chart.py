@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
-from src.repositories.equipment_chart import EquipmentChartRepository
+from src.repositories.charts.equipment_chart import EquipmentChartRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.equipment_chart import EquipmentChartFilter, EquipmentChartRead
 

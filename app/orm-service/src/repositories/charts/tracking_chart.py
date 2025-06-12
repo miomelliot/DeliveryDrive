@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
 from src.db.models import Route, User
-from src.repositories.routing_chart import RoutingChartRepository
+from src.repositories.charts.routing_chart import RoutingChartRepository
 from src.schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.schemas.tracking_chart import TrackingChart
 from src.utils.sqlalchemy_expr import full_name_expr
