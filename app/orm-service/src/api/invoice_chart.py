@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
 from src.repositories.charts.invoice_chart import InvoiceChartRepository
-from src.schemas.auth import CurrentUser
-from src.schemas.invoice_chart import InvoiceChartFilter, InvoiceChartRead, InvoiceWidgetRead
+from src.schemas.fastapi.auth import CurrentUser
+from src.schemas.fastapi.invoice_chart import InvoiceChartFilter, InvoiceChartRead, InvoiceWidgetRead
 
 router = APIRouter(prefix="/charts/invoice", tags=["Invoice Chart"])
 

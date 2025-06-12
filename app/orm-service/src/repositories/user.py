@@ -14,7 +14,7 @@ from uuid6 import uuid7
 
 from src.core.security import hash_password
 from src.db.models import CourierSchedule, Role, Transport, TransportType, User
-from src.schemas.user import (
+from src.schemas.fastapi.user import (
     UserCourierCreate,
     UserCourierRead,
     UserCourierUpdate,

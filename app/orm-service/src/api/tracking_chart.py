@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
 from src.repositories.charts.tracking_chart import TrackingChartRepository
-from src.schemas.auth import CurrentUser
-from src.schemas.routing_chart import RoutingChartFilter
-from src.schemas.tracking_chart import TrackingChart
+from src.schemas.fastapi.auth import CurrentUser
+from src.schemas.fastapi.routing_chart import RoutingChartFilter
+from src.schemas.fastapi.tracking_chart import TrackingChart
 
 router = APIRouter(prefix="/charts/tracking", tags=["Tracking Chart"])
 

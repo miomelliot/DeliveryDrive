@@ -22,7 +22,7 @@ from src.db.models import (
     RouteItem,
     User,
 )
-from src.schemas.order_detail_read import (
+from src.schemas.fastapi.order_detail_read import (
     OrderDetailRead,
     OrderDetailUpdate,
     OrderHistoryChart,
