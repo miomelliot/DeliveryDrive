@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import Address, Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
 from src.schemas.equipment_chart import EquipmentChartRead
-from src.utils.http_error import _raise_404, _raise_409, _raise_500
+from src.utils.http_error import ConflictError, InternalServerError, NotFoundError
 from src.utils.sqlalchemy_expr import location_expr
 
 
@@ -22,7 +22,7 @@ class EquipmentRepository:
             select(Equipment.id).where(Equipment.serial_number == data.serial_number)
         )
         if dup:
-            _raise_409("Серийный номер уже существует")
+            raise ConflictError("Серийный номер уже существует")
 
         # 1. HeaterType (создаём при необходимости)
         heater_type: HeaterType | None = await self.session.scalar(
@@ -42,12 +42,12 @@ class EquipmentRepository:
             select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
         )
         if status_id is None:
-            _raise_500("Статус 'available' не найден в справочнике EquipmentStatus")
+            raise InternalServerError("Статус 'available' не найден в справочнике EquipmentStatus")
 
         # 3. Первый склад + его адрес
         warehouse: Warehouse | None = await self.session.scalar(select(Warehouse).limit(1))
         if warehouse is None:
-            _raise_500("Не найдено ни одного склада – база не инициализирована")
+            raise InternalServerError("Не найдено ни одного склада – база не инициализирована")
 
         # 4. Сам объект оборудования
         equipment = Equipment(
@@ -104,7 +104,7 @@ class EquipmentRepository:
             select(EquipmentStatus.id).where(EquipmentStatus.code == "decommissioned")
         )
         if status_id is None:
-            _raise_500("Статус 'decommissioned' не найден")
+            raise InternalServerError("Статус 'decommissioned' не найден")
 
         # Обновляем статус оборудования
         await self.session.execute(
@@ -132,7 +132,7 @@ class EquipmentRepository:
 
         result: Row[Tuple[UUID, date | None, str, float, float, str, str]] | None = row.first()
         if result is None:
-            _raise_404("Не удалось собрать информацию об оборудовании")
+            raise NotFoundError("Не удалось собрать информацию об оборудовании")
 
         return EquipmentChartRead.model_validate(result._asdict())
 
@@ -146,14 +146,14 @@ class EquipmentRepository:
         )
 
         if available_id is None or maintenance_id is None:
-            _raise_500("Не найдены необходимые статусы оборудования")
+            raise InternalServerError("Не найдены необходимые статусы оборудования")
 
         # Получаем текущий статус оборудования
         current_status_id: int | None = await self.session.scalar(
             select(Equipment.equipment_status_id).where(Equipment.id == equipment_id)
         )
         if current_status_id is None:
-            _raise_404("Оборудование не найдено")
+            raise NotFoundError("Оборудование не найдено")
 
         # Решаем, на какой статус переключить
         if current_status_id == available_id:
@@ -161,7 +161,7 @@ class EquipmentRepository:
         elif current_status_id == maintenance_id:
             new_status_id = available_id
         else:
-            _raise_409("Оборудование должно быть в статусе 'available' или 'maintenance'")
+            raise ConflictError("Оборудование должно быть в статусе 'available' или 'maintenance'")
 
         # Обновляем статус
         await self.session.execute(
@@ -196,6 +196,6 @@ class EquipmentRepository:
 
         result: Row[Tuple[UUID, date | None, str, float, float, Any, str]] | None = row.first()
         if result is None:
-            _raise_404("Не удалось собрать информацию об оборудовании")
+            raise NotFoundError("Не удалось собрать информацию об оборудовании")
 
         return EquipmentChartRead.model_validate(result._asdict())

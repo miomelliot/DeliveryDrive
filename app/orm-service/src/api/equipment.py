@@ -10,7 +10,6 @@ from src.repositories.equipment import EquipmentRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
 from src.schemas.equipment_chart import EquipmentChartRead
-from src.utils.http_error import _raise_400
 
 router = APIRouter(prefix="/equipment", tags=["Equipment"])
 
@@ -22,11 +21,8 @@ async def add_equipment(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = EquipmentRepository(session)
-    try:
-        await repo.add_equipment(data)
-        return {"detail": "Оборудование добавлено на склад"}
-    except ValueError as e:
-        _raise_400(e)
+    await repo.add_equipment(data)
+    return {"detail": "Оборудование добавлено на склад"}
 
 
 @router.get("/models/distinct", response_model=list[str])
@@ -35,10 +31,7 @@ async def get_all_models(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[str]:
     repo = EquipmentRepository(session)
-    try:
-        return await repo.list_all_models()
-    except ValueError as e:
-        _raise_400(e)
+    return await repo.list_all_models()
 
 
 @router.get("/models/info", response_model=list[EquipmentRead])
@@ -48,10 +41,7 @@ async def get_models_by_status(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[EquipmentRead]:
     repo = EquipmentRepository(session)
-    try:
-        return await repo.list_models_with_count(filter)
-    except ValueError as e:
-        _raise_400(e)
+    return await repo.list_models_with_count(filter)
 
 
 @router.delete("/{equipment_id}", response_model=dict[str, str])
@@ -61,11 +51,8 @@ async def delete_equipment(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = EquipmentRepository(session)
-    try:
-        await repo.delete_equipment(equipment_id)
-        return {"detail": "Оборудование удалено"}
-    except ValueError as e:
-        _raise_400(e)
+    await repo.delete_equipment(equipment_id)
+    return {"detail": "Оборудование удалено"}
 
 
 @router.patch("/{equipment_id}/decommission", response_model=EquipmentChartRead)
@@ -75,10 +62,7 @@ async def decommission_equipment(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> EquipmentChartRead:
     repo = EquipmentRepository(session)
-    try:
-        return await repo.decommission_equipment(equipment_id)
-    except ValueError as e:
-        _raise_400(e)
+    return await repo.decommission_equipment(equipment_id)
 
 
 @router.patch("/{equipment_id}/toggle-maintenance", response_model=EquipmentChartRead)
@@ -88,7 +72,4 @@ async def toggle_equipment_maintenance(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> EquipmentChartRead:
     repo = EquipmentRepository(session)
-    try:
-        return await repo.send_to_service(equipment_id)
-    except ValueError as e:
-        _raise_400(e)
+    return await repo.send_to_service(equipment_id)

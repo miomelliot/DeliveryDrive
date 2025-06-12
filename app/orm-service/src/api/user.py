@@ -17,7 +17,6 @@ from src.schemas.user import (
     UserManagerRead,
     UserManagerUpdate,
 )
-from src.utils.http_error import _raise_400
 
 router = APIRouter(prefix="/user", tags=["User"])
 
@@ -35,10 +34,7 @@ async def create_manager_user(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
-    try:
-        return await repo.create(data, icon)
-    except ValueError as e:
-        _raise_400(e)
+    return await repo.create(data, icon)
 
 
 @router.patch("/manager/{user_id}", response_model=UserManagerRead)
@@ -50,10 +46,7 @@ async def update_manager_user(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
-    try:
-        result: UserManagerRead | None = await repo.update(user_id, data, icon)
-    except ValueError as e:
-        _raise_400(e)
+    result: UserManagerRead | None = await repo.update(user_id, data, icon)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return result
@@ -92,10 +85,7 @@ async def create_courier_user(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
-    try:
-        return await repo.create(data, icon)
-    except ValueError as e:
-        _raise_400(e)
+    return await repo.create(data, icon)
 
 
 @router.patch("/courier/{user_id}", response_model=UserCourierRead)
@@ -107,10 +97,7 @@ async def update_courier_user(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
-    try:
-        result: UserCourierRead | None = await repo.update(user_id, data, icon)
-    except ValueError as e:
-        _raise_400(e)
+    result: UserCourierRead | None = await repo.update(user_id, data, icon)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return result

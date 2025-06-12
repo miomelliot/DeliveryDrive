@@ -14,7 +14,6 @@ from src.repositories.order_detail_read import OrderDetailRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.order import OrderCreate
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
-from src.utils.http_error import _raise_400, _raise_404
 
 router = APIRouter(prefix="/order", tags=["Order"])
 
@@ -26,14 +25,11 @@ async def create_order(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = OrderRepository(session)
-    try:
-        order: Order = await repo.create_order(data, current_user.id)
-        return {
-            "id": f"{order.id}",
-            "detail": "Заказ успешно создан",
-        }
-    except ValueError as e:
-        _raise_400(e)
+    order: Order = await repo.create_order(data, current_user.id)
+    return {
+        "id": f"{order.id}",
+        "detail": "Заказ успешно создан",
+    }
 
 
 @router.get("/{order_id}", response_model=OrderDetailRead)
@@ -43,10 +39,7 @@ async def get_order_detail(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> OrderDetailRead:
     repo = OrderDetailRepository(session)
-    try:
-        return await repo.get_detail(order_id)
-    except Exception as err:
-        _raise_404(str(err))
+    return await repo.get_detail(order_id)
 
 
 @router.patch("/{order_id}")
@@ -57,11 +50,8 @@ async def update_order_detail(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = OrderDetailRepository(session)
-    try:
-        await repo.update_detail(order_id, data)
-        return {"status": "success"}
-    except ValueError as err:
-        _raise_404(str(err))
+    await repo.update_detail(order_id, data)
+    return {"status": "success"}
 
 
 @router.delete("/{order_id}")
@@ -71,11 +61,8 @@ async def delete_order(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
     repo = OrderRepository(session)
-    try:
-        await repo.delete_order(order_id)
-        return {"detail": f"Заказ {order_id} удалён"}
-    except ValueError as e:
-        _raise_400(e)
+    await repo.delete_order(order_id)
+    return {"detail": f"Заказ {order_id} удалён"}
 
 
 @router.get("/status", response_model=list[str])

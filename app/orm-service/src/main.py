@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api import (
@@ -16,6 +18,17 @@ from src.api import (
 )
 
 app = FastAPI(title="orm-service")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    errors = [{"field": ".".join(map(str, err["loc"][1:])), "msg": err["msg"]} for err in exc.errors()]
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"success": False, "errors": errors},
+    )
+
+
 # static path
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 STATIC_DIR: Path = BASE_DIR / "static"

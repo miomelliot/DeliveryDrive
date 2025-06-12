@@ -19,7 +19,7 @@ from src.db.models import (
 )
 from src.schemas.order import EquipmentList, OrderCreate
 from src.utils.history import add_order_history
-from src.utils.http_error import _raise_404, _raise_409, _raise_422, _raise_500
+from src.utils.http_error import ConflictError, InternalServerError, NotFoundError, UnprocessableEntityError
 
 
 class OrderRepository:
@@ -41,8 +41,8 @@ class OrderRepository:
     async def _create_address(self, location: str) -> Address:
         try:
             city, street, building = [x.strip() for x in location.split(",", 2)]
-        except Exception:
-            _raise_422("Адрес должен быть в формате: Город, Улица, Дом")
+        except Exception as exc:
+            raise UnprocessableEntityError("Адрес должен быть в формате: Город, Улица, Дом") from exc
 
         address = Address(city=city, street=street, building=building, lat=0.0, lon=0.0)
         self.session.add(address)
@@ -90,7 +90,7 @@ class OrderRepository:
     ) -> int:
         status_id: int | None = await self.session.scalar(select(model.id).where(model.code == code))
         if status_id is None:
-            _raise_500(err_msg)
+            raise InternalServerError(err_msg)
         return status_id
 
     async def _reserve_equipment_and_add_items(
@@ -104,7 +104,7 @@ class OrderRepository:
                 select(HeaterType).where(HeaterType.model == eq.model)
             )
             if not heater_type:
-                _raise_404(f"Оборудование с моделью '{eq.model}' не найдено")
+                raise NotFoundError(f"Оборудование с моделью '{eq.model}' не найдено")
 
             equipment_items = list(
                 await self.session.scalars(
@@ -117,7 +117,7 @@ class OrderRepository:
                 )
             )
             if len(equipment_items) < eq.quantity:
-                _raise_409(f"Недостаточно оборудования модели '{eq.model}' на складе")
+                raise ConflictError(f"Недостаточно оборудования модели '{eq.model}' на складе")
 
             reserved_status_id: int = await self._get_status_id(EquipmentStatus, "rented", "Статус 'rented' не найден")
 
@@ -128,109 +128,6 @@ class OrderRepository:
 
             item = OrderItem(order_id=order_id, heater_type_id=heater_type.id, quantity=eq.quantity)
             self.session.add(item)
-
-    # async def create_order(self, data: OrderCreate, uid: UUID) -> Order:
-    #     # 📍 Парсинг адреса
-    #     try:
-    #         city, street, building = [x.strip() for x in data.location.split(",", 2)]
-    #     except Exception:
-    #         _raise_422("Адрес должен быть в формате: Город, Улица, Дом")
-
-    #     address = Address(
-    #         city=city,
-    #         street=street,
-    #         building=building,
-    #         lat=0.0,
-    #         lon=0.0,
-    #     )
-    #     self.session.add(address)
-    #     await self.session.flush()
-
-    #     client = Client(
-    #         name=data.name or "-",
-    #         phone=data.phone,
-    #         address_id=address.id,
-    #     )
-    #     self.session.add(client)
-    #     await self.session.flush()
-
-    #     status_id: int | None = await self.session.scalar(
-    #         select(OrderStatus.id).where(OrderStatus.code == "new"),
-    #     )
-    #     if status_id is None:
-    #         _raise_500("Статус 'new' не найден в справочнике")
-
-    #     order = Order(
-    #         client_id=client.id,
-    #         rent_start=data.rent_start,
-    #         rent_end=data.rent_end,
-    #         window_start=data.window_start,
-    #         window_end=data.window_end,
-    #         status_id=status_id,
-    #         comment=data.comment,
-    #     )
-    #     self.session.add(order)
-    #     await self.session.flush()
-
-    #     invoice_status_id: int | None = await self.session.scalar(
-    #         select(InvoiceStatus.id).where(InvoiceStatus.code == "not_paid"),
-    #     )
-    #     if status_id is None:
-    #         _raise_500("Статус 'not_paid' не найден в справочнике")
-
-    #     invoice = Invoice(
-    #         order_id=order.id,
-    #         invoice_status_id=invoice_status_id,
-    #     )
-    #     self.session.add(invoice)
-
-    #     await add_order_history(
-    #         self.session,
-    #         order_id=order.id,
-    #         previous_status_id=None,
-    #         new_status_id=status_id,
-    #         user_id=uid,
-    #     )
-
-    #     for eq in data.equipment:
-    #         heater_type: HeaterType | None = await self.session.scalar(
-    #             select(HeaterType).where(HeaterType.model == eq.model)
-    #         )
-    #         if not heater_type:
-    #             _raise_404(f"Оборудование с моделью '{eq.model}' не найдено")
-
-    #         equipment_items = list(
-    #             await self.session.scalars(
-    #                 select(Equipment)
-    #                 .where(
-    #                     Equipment.heater_type_id == heater_type.id,
-    #                     Equipment.status.has(code="available"),
-    #                 )
-    #                 .limit(eq.quantity)
-    #             )
-    #         )
-    #         if len(equipment_items) < eq.quantity:
-    #             _raise_409(f"Недостаточно оборудования модели '{eq.model}' на складе")
-
-    #         reserved_status_id: int | None = await self.session.scalar(
-    #             select(EquipmentStatus.id).where(EquipmentStatus.code == "rented")
-    #         )
-    #         if reserved_status_id is None:
-    #             _raise_500("Статус 'rented' не найден в справочнике")
-
-    #         for equip in equipment_items:
-    #             equip.current_address_id = client.address_id
-    #             equip.equipment_status_id = reserved_status_id
-    #             self.session.add(equip)
-
-    #         item = OrderItem(
-    #             order_id=order.id,
-    #             heater_type_id=heater_type.id,
-    #             quantity=eq.quantity,
-    #         )
-    #         self.session.add(item)
-
-    #     return order
 
     async def delete_order(self, order_id: UUID) -> None:
         await self.session.execute(delete(Order).where(Order.id == order_id))
