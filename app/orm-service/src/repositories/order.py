@@ -17,7 +17,7 @@ from src.db.models import (
     OrderItem,
     OrderStatus,
 )
-from src.schemas.fastapi.order import EquipmentList, OrderCreate
+from src.schemas.order import EquipmentList, OrderCreate
 from src.utils.history import add_order_history
 from src.utils.http_error import ConflictError, InternalServerError, NotFoundError, UnprocessableEntityError
 

@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from src.core.security import decode_access_token
 from src.db.models import User
 from src.db.session import get_session
-from src.schemas.fastapi.auth import CurrentUser
+from src.schemas.auth import CurrentUser
 from src.utils.http_error import UnauthorizedError
 
 bearer_scheme = HTTPBearer(auto_error=False)

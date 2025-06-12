@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
 from src.repositories.user import UserBaseRepository, UserCourierRepository, UserManagerRepository
-from src.schemas.fastapi.auth import CurrentUser
-from src.schemas.fastapi.user import (
+from src.schemas.auth import CurrentUser
+from src.schemas.user import (
     UserCourierCreate,
     UserCourierRead,
     UserCourierUpdate,

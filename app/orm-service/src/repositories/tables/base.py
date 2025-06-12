@@ -1,4 +1,4 @@
-# src/repositories/base.py
+# src/repositories/tables/base.py
 from typing import Any, Protocol, Sequence, Tuple, Type
 from uuid import UUID
 

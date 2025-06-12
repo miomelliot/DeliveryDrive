@@ -11,9 +11,9 @@ from src.dependencies.auth import get_current_user
 from src.repositories.charts.order_chart import OrderChartRepository
 from src.repositories.order import OrderRepository
 from src.repositories.order_detail_read import OrderDetailRepository
-from src.schemas.fastapi.auth import CurrentUser
-from src.schemas.fastapi.order import OrderCreate
-from src.schemas.fastapi.order_detail_read import OrderDetailRead, OrderDetailUpdate
+from src.schemas.auth import CurrentUser
+from src.schemas.order import OrderCreate
+from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
 
 router = APIRouter(prefix="/order", tags=["Order"])
 

@@ -7,8 +7,8 @@ from sqlalchemy import Result, Row, ScalarResult, Select, case, delete, func, se
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address, Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
-from src.schemas.fastapi.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
-from src.schemas.fastapi.equipment_chart import EquipmentChartRead
+from src.schemas.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
+from src.schemas.equipment_chart import EquipmentChartRead
 from src.utils.http_error import ConflictError, InternalServerError, NotFoundError
 from src.utils.sqlalchemy_expr import location_expr
 
