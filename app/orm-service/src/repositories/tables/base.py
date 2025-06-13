@@ -28,7 +28,7 @@ class CRUDRepository[
         instance: ModelT | None = res.scalars().first()
 
         if instance is None:
-            raise ConflictError("Объект с таким ID не найден")
+            raise ConflictError()
 
         return instance
 
