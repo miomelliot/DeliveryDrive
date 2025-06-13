@@ -1,13 +1,15 @@
 # src/schemas/address.py
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class _AddressBase(BaseModel):
-    model: str
-    price: float = Field(..., ge=0, examples=[599.0])
-    weight: float = Field(..., ge=0, examples=[2.0])
+    city: str
+    street: str | None
+    building: str
+    lat: float = 0.0
+    lon: float = 0.0
 
 
 class AddressCreate(_AddressBase):
@@ -15,9 +17,11 @@ class AddressCreate(_AddressBase):
 
 
 class AddressUpdate(BaseModel):
-    model: str | None = None
-    price: float | None = Field(None, ge=0)
-    weight: float | None = Field(None, ge=0)
+    city: str | None
+    street: str | None
+    building: str | None
+    lat: float | None
+    lon: float | None
 
 
 class AddressRead(_AddressBase):

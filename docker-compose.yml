@@ -94,5 +94,19 @@ services:
   #     - db_data:/var/lib/postgresql/data:ro
   #     - ./backups:/backups
 
+  nominatim:
+    image: mediagis/nominatim:5.1
+    shm_size: 1g
+    environment:
+      PBF_URL: https://download.bbbike.org/osm/bbbike/Moscow/Moscow.osm.pbf
+      IMPORT_WIKIPEDIA: "false"
+      NOMINATIM_PASSWORD: strongpass
+    volumes:
+      - nominatim-db:/var/lib/postgresql/15/main
+    ports:
+      - "7070:8080"
+  
+
 volumes:
   db_data:
+  nominatim-db:

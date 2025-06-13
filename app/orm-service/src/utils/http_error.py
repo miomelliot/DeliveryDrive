@@ -17,7 +17,7 @@ class BadRequestError(APIException):
 
 class UnauthorizedError(APIException):
     status_code = 401
-    detail = "Неавторизован"
+    detail = "Неавторизованн"
 
 
 class NotFoundError(APIException):
