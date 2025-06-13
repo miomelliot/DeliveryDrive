@@ -25,46 +25,10 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
         super().__init__(Address)
 
     async def create(self, session: AsyncSession, obj_in: AddressCreate) -> Address:
-        city, street, building = await self._parse_location(obj_in.location)
-
-        lat, lon = await self._geocode(obj_in.location)
-
-        db_obj = Address(
-            city=city,
-            street=street,
-            building=building,
-            lat=lat,
-            lon=lon,
-        )
-        session.add(db_obj)
-        await session.flush()
-        await session.refresh(db_obj)
-        return db_obj
+        return await super().create(session, obj_in)
 
     async def update_by_id(self, session: AsyncSession, id: UUID, obj_in: AddressUpdate) -> Address:
-        city, street, building = await self._parse_location(obj_in.location)
-
-        lat, lon = await self._geocode(obj_in.location)
-
-        obj_in = AddressUpdate(
-            city=city,
-            street=street,
-            building=building,
-            lat=lat,
-            lon=lon,
-        )
         return await super().update_by_id(session, id, obj_in)
-
-    @staticmethod
-    async def _parse_location(location: str | None) -> tuple[str, str | None, str]:
-        if location is None:
-            raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
-        parts: list[str] = [p.strip() for p in location.split(",")]
-        if len(parts) == 3:
-            return parts[0], parts[1], parts[2]
-        if len(parts) == 2:
-            return parts[0], None, parts[1]
-        raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
 
     @staticmethod
     async def _geocode(location: str | None) -> tuple[float, float]:

@@ -12,12 +12,15 @@ class _AddressBase(BaseModel):
     lon: float = 0.0
 
 
-class AddressCreate(BaseModel):
+class AddressCreateAPI(BaseModel):
     location: str = Field(..., min_length=5)
 
 
+class AddressCreate(_AddressBase):
+    pass
+
+
 class AddressUpdate(BaseModel):
-    location: str | None = None
     city: str | None
     street: str | None
     building: str | None
