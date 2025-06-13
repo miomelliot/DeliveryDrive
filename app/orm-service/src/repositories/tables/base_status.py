@@ -1,18 +1,21 @@
-# src/repositories/tables/base_status.py
-from typing import Tuple
+from typing import Any, Protocol, Tuple
 
 from sqlalchemy import Result, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import BaseLookup
 from src.repositories.tables.base import CRUDRepository
 from src.schemas.base_lookup import BaseLookupCreate, BaseLookupUpdate
 from src.utils.http_error import ConflictError
 
 
-class BaseStatusRepository(CRUDRepository[BaseLookup, BaseLookupCreate, BaseLookupUpdate]):
-    def __init__(self) -> None:
-        super().__init__(BaseLookup)
+class HasIdAndCode(Protocol):
+    id: Any
+    code: Any
+
+
+class BaseStatusRepository[ModelT: HasIdAndCode](CRUDRepository[ModelT, BaseLookupCreate, BaseLookupUpdate]):
+    def __init__(self, model: type[ModelT]) -> None:
+        super().__init__(model)
 
     async def get_id(self, session: AsyncSession, code: str) -> int:
         stmt: Select[Tuple[int]] = select(self.model.id).where(self.model.code == code)
@@ -20,7 +23,6 @@ class BaseStatusRepository(CRUDRepository[BaseLookup, BaseLookupCreate, BaseLook
         instance: int | None = res.scalars().first()
 
         if instance is None:
-            raise ConflictError("Объект с таким ID не найден")
+            raise ConflictError("Объект с таким кодом не найден")
 
         return instance
-
