@@ -1,8 +1,9 @@
 # src/repositories/tables/address.py
-from __future__ import annotations
+
 
 import asyncio
 from typing import Any, Final
+from uuid import UUID
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +25,7 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
         super().__init__(Address)
 
     async def create(self, session: AsyncSession, obj_in: AddressCreate) -> Address:
-        city, street, building = self._parse_location(obj_in.location)
+        city, street, building = await self._parse_location(obj_in.location)
 
         lat, lon = await self._geocode(obj_in.location)
 
@@ -40,8 +41,24 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
         await session.refresh(db_obj)
         return db_obj
 
+    async def update_by_id(self, session: AsyncSession, id: UUID, obj_in: AddressUpdate) -> Address:
+        city, street, building = await self._parse_location(obj_in.location)
+
+        lat, lon = await self._geocode(obj_in.location)
+
+        obj_in = AddressUpdate(
+            city=city,
+            street=street,
+            building=building,
+            lat=lat,
+            lon=lon,
+        )
+        return await super().update_by_id(session, id, obj_in)
+
     @staticmethod
-    def _parse_location(location: str) -> tuple[str, str | None, str]:
+    async def _parse_location(location: str | None) -> tuple[str, str | None, str]:
+        if location is None:
+            raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
         parts: list[str] = [p.strip() for p in location.split(",")]
         if len(parts) == 3:
             return parts[0], parts[1], parts[2]
@@ -50,13 +67,15 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
         raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
 
     @staticmethod
-    async def _geocode(location: str) -> tuple[float, float]:
+    async def _geocode(location: str | None) -> tuple[float, float]:
         """
         1. Проверяем формат (Город, Улица, Дом | Город, Дом)
         2. Пробуем локальный Nominatim
         3. При неуспехе — публичный Nominatim (с паузой 1 с)
         4. Если тоже пусто — NotFoundError
         """
+        if location is None:
+            raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
         parts: list[str] = [p.strip() for p in location.split(",")]
         if len(parts) not in (2, 3):
             raise BadRequestError("Ошибка адреса: допустимый формат «Город, Улица, Дом» или «Город, Дом»")

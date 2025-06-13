@@ -47,11 +47,15 @@ class CRUDRepository[
 
     # -------------------- UPDATE --------------------
     async def update(self, session: AsyncSession, db_obj: ModelT, obj_in: UpdateT) -> ModelT:
-        for field, value in obj_in.model_dump(exclude_unset=True).items():
+        for field, value in obj_in.model_dump(exclude_unset=True, exclude_none=True).items():
             setattr(db_obj, field, value)
         await session.flush()
         await session.refresh(db_obj)
         return db_obj
+
+    async def update_by_id(self, session: AsyncSession, id: UUID, obj_in: UpdateT) -> ModelT:
+        db_obj: ModelT = await self.get(session, id)
+        return await self.update(session, db_obj, obj_in)
 
     # -------------------- DELETE --------------------
     async def delete(self, session: AsyncSession, id: UUID) -> None:

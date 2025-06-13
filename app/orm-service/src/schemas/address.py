@@ -18,6 +18,11 @@ class AddressCreate(BaseModel):
 
 class AddressUpdate(BaseModel):
     location: str | None = None
+    city: str | None
+    street: str | None
+    building: str | None
+    lat: float | None
+    lon: float | None
 
 
 class AddressRead(_AddressBase):
