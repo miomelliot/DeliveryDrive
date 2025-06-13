@@ -15,7 +15,6 @@ from src.db.models import (
     InvoiceStatus,
     Order,
     OrderItem,
-    OrderStatus,
 )
 from src.schemas.order import EquipmentList, OrderCreate
 from src.utils.history import add_order_history
@@ -29,7 +28,7 @@ class OrderRepository:
     async def create_order(self, data: OrderCreate, uid: UUID) -> Order:
         address: Address = await self._create_address(data.location)
         client: Client = await self._create_client(data, address.id)
-        status_id: int = await self._get_status_id(OrderStatus, "new", "Статус 'new' не найден")
+        status_id: int = await self._get_status_id(BaseLookup, "new", "Статус 'new' не найден")
         order: Order = await self._create_order_entity(data, client.id, status_id)
         invoice_status_id: int = await self._get_status_id(InvoiceStatus, "not_paid", "Статус 'not_paid' не найден")
         await self._create_invoice(order.id, invoice_status_id)

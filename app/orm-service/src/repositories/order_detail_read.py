@@ -9,6 +9,7 @@ from sqlalchemy.orm import aliased
 
 from src.db.models import (
     Address,
+    BaseLookup,
     Client,
     Contract,
     HeaterType,
@@ -17,7 +18,6 @@ from src.db.models import (
     Order,
     OrderHistory,
     OrderItem,
-    OrderStatus,
     Route,
     RouteItem,
     User,
@@ -48,7 +48,7 @@ class OrderDetailRepository:
                 Client.phone,
                 Client.name.label("client_name"),
                 location_expr().label("location"),
-                OrderStatus.description.label("status"),
+                BaseLookup.description.label("status"),
                 InvoiceStatus.description.label("invoice_status"),
                 Invoice.issued_at,
                 Invoice.paid_at,
@@ -58,7 +58,7 @@ class OrderDetailRepository:
             )
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
-            .join(OrderStatus, OrderStatus.id == Order.status_id)
+            .join(BaseLookup, BaseLookup.id == Order.status_id)
             .outerjoin(Invoice, Invoice.order_id == Order.id)
             .outerjoin(InvoiceStatus, InvoiceStatus.id == Invoice.invoice_status_id)
             .outerjoin(Contract, Contract.order_id == Order.id)
@@ -86,8 +86,8 @@ class OrderDetailRepository:
         items: list[OrderItemChart] = [OrderItemChart.model_validate(dict(r._mapping)) for r in item_result.fetchall()]
 
         # 🗓️ История заказа
-        status_new: type[OrderStatus] = aliased(OrderStatus)
-        status_prev: type[OrderStatus] = aliased(OrderStatus)
+        status_new: type[BaseLookup] = aliased(BaseLookup)
+        status_prev: type[BaseLookup] = aliased(BaseLookup)
 
         history_stmt: Select[Tuple[datetime, str, str]] = (
             select(
@@ -152,8 +152,8 @@ class OrderDetailRepository:
         if data.comment is not None:
             order.comment = data.comment
         if data.status is not None:
-            status: OrderStatus | None = await self.session.scalar(
-                select(OrderStatus).where(OrderStatus.description == data.status)
+            status: BaseLookup | None = await self.session.scalar(
+                select(BaseLookup).where(BaseLookup.description == data.status)
             )
             if status is None:
                 raise ValueError(f"Unknown order status: {data.status}")

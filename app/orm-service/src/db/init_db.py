@@ -9,10 +9,10 @@ from src.core.security import hash_password
 from src.db.models import (
     Address,
     Base,
+    BaseLookup,
     EquipmentStatus,
     EventType,
     InvoiceStatus,
-    OrderStatus,
     Role,
     TransportType,
     User,
@@ -133,7 +133,7 @@ async def init_db() -> None:
     # наполняем справочники, создаём адрес+склад и админа
     async with AsyncSessionFactory() as session:
         await _upsert_roles(session)
-        await _upsert_simple(session, OrderStatus, ORDER_STATUSES)
+        await _upsert_simple(session, BaseLookup, ORDER_STATUSES)
         await _upsert_simple(session, EquipmentStatus, EQUIPMENT_STATUSES)
         await _upsert_simple(session, InvoiceStatus, INVOICE_STATUSES)
         await _upsert_simple(session, EventType, EVENT_TYPES)
