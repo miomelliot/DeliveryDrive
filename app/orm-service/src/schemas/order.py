@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class EquipmentList(BaseModel):
-    # HeaterType
     model: str
     quantity: int = Field(..., gt=0)
     model_config = ConfigDict(from_attributes=True)

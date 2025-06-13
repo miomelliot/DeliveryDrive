@@ -24,12 +24,30 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
         super().__init__(Address)
 
     async def create(self, session: AsyncSession, obj_in: AddressCreate) -> Address:
-        if obj_in.lat is None or obj_in.lon is None:
-            lat, lon = await self._geocode(obj_in.lon)
-            obj_in.lat = lat
-            obj_in.lon = lon
+        city, street, building = self._parse_location(obj_in.location)
 
-        return await super().create(session, obj_in)
+        lat, lon = await self._geocode(obj_in.location)
+
+        db_obj = Address(
+            city=city,
+            street=street,
+            building=building,
+            lat=lat,
+            lon=lon,
+        )
+        session.add(db_obj)
+        await session.flush()
+        await session.refresh(db_obj)
+        return db_obj
+
+    @staticmethod
+    def _parse_location(location: str) -> tuple[str, str | None, str]:
+        parts: list[str] = [p.strip() for p in location.split(",")]
+        if len(parts) == 3:
+            return parts[0], parts[1], parts[2]
+        if len(parts) == 2:
+            return parts[0], None, parts[1]
+        raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
 
     @staticmethod
     async def _geocode(location: str) -> tuple[float, float]:
