@@ -1,12 +1,14 @@
 # src/repositories/tables/order.py
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Client, Order
 from src.repositories.tables.base import CRUDRepository
 from src.repositories.tables.client import ClientRepository
+from src.repositories.tables.heater_type import HeaterTypeRepository
+from src.repositories.tables.order_item import OrderItemRepository
 from src.repositories.tables.order_status import OrderStatusRepository
 from src.schemas.order import OrderCreate, OrderCreateAPI, OrderUpdate
+from src.schemas.order_item import OrderItemCreate
 
 
 class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
@@ -26,5 +28,17 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
             status_id=status_id,
             comment=raw_data.comment,
         )
+        order: Order = await super().create(session, obj_in)
 
-        return await super().create(session, obj_in)
+        for equip in raw_data.equipment:
+            heater_type_id: int = await HeaterTypeRepository().get_id(session, equip.model)
+            await OrderItemRepository().create(
+                session,
+                OrderItemCreate(
+                    order_id=order.id,
+                    heater_type_id=heater_type_id,
+                    quantity=equip.quantity,
+                ),
+            )
+
+        return order

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import HeaterType
 from src.repositories.tables.base import CRUDRepository
 from src.schemas.heater_type import HeaterTypeCreate, HeaterTypeUpdate
-from src.utils.http_error import ConflictError
+from src.utils.http_error import NotFoundError
 
 
 class HeaterTypeRepository(CRUDRepository[HeaterType, HeaterTypeCreate, HeaterTypeUpdate]):
@@ -20,6 +20,6 @@ class HeaterTypeRepository(CRUDRepository[HeaterType, HeaterTypeCreate, HeaterTy
         instance: int | None = res.scalars().first()
 
         if instance is None:
-            raise ConflictError()
+            raise NotFoundError(f"{model} не найдено")
 
         return instance
