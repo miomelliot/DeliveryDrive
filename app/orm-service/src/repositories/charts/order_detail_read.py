@@ -18,6 +18,7 @@ from src.db.models import (
     Order,
     OrderHistory,
     OrderItem,
+    OrderStatus,
     Route,
     RouteItem,
     User,
@@ -48,7 +49,7 @@ class OrderDetailRepository:
                 Client.phone,
                 Client.name.label("client_name"),
                 location_expr().label("location"),
-                BaseLookup.description.label("status"),
+                OrderStatus.description.label("status"),
                 InvoiceStatus.description.label("invoice_status"),
                 Invoice.issued_at,
                 Invoice.paid_at,
@@ -58,7 +59,7 @@ class OrderDetailRepository:
             )
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
-            .join(BaseLookup, BaseLookup.id == Order.status_id)
+            .join(OrderStatus, OrderStatus.id == Order.status_id)
             .outerjoin(Invoice, Invoice.order_id == Order.id)
             .outerjoin(InvoiceStatus, InvoiceStatus.id == Invoice.invoice_status_id)
             .outerjoin(Contract, Contract.order_id == Order.id)

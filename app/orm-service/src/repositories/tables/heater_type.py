@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import HeaterType
 from src.repositories.tables.base import CRUDRepository
 from src.schemas.heater_type import HeaterTypeCreate, HeaterTypeUpdate
-from src.utils.http_error import NotFoundError
+from src.utils.http_error import ConflictError, NotFoundError
 
 
 class HeaterTypeRepository(CRUDRepository[HeaterType, HeaterTypeCreate, HeaterTypeUpdate]):
@@ -21,6 +21,16 @@ class HeaterTypeRepository(CRUDRepository[HeaterType, HeaterTypeCreate, HeaterTy
 
         if instance is None:
             raise NotFoundError(f"{model} не найдено")
+
+        return instance
+
+    async def get_all(self, session: AsyncSession, model: str) -> HeaterType:
+        stmt: Select[Tuple[HeaterType]] = select(self.model).where(self.model.model == model)
+        res: Result[Tuple[HeaterType]] = await session.execute(stmt)
+        instance: HeaterType | None = res.scalars().first()
+
+        if instance is None:
+            raise ConflictError()
 
         return instance
 
