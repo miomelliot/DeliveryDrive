@@ -9,13 +9,13 @@ from src.api import (
     equipment,
     equipment_chart,
     invoice_chart,
-    order,
     order_chart,
     routing_chart,
     tracking_chart,
     user,
     user_chart,
 )
+from src.api.v1 import order
 
 app = FastAPI(title="orm-service")
 
