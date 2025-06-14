@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address
 from src.repositories.tables.base import CRUDRepository
-from src.schemas.address import AddressCreate, AddressUpdate
+from src.schemas.address import AddressCreate, AddressCreateAPI, AddressUpdate, AddressUpdateAPI
 from src.utils.http_error import BadRequestError, NotFoundError
 
 _LOCAL_NOMINATIM_URL: Final[str] = "http://nominatim:8080/search"
@@ -24,11 +24,41 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
     def __init__(self) -> None:
         super().__init__(Address)
 
-    async def create(self, session: AsyncSession, obj_in: AddressCreate) -> Address:
+    async def create_raw(self, session: AsyncSession, address_raw: AddressCreateAPI) -> Address:
+        city, street, building = self._parse_location(address_raw.location)
+        lat, lon = await self._geocode(address_raw.location)
+
+        obj_in = AddressCreate(
+            city=city,
+            street=street,
+            building=building,
+            lat=lat,
+            lon=lon,
+        )
         return await super().create(session, obj_in)
 
-    async def update_by_id(self, session: AsyncSession, id: UUID, obj_in: AddressUpdate) -> Address:
+    async def update_by_id_raw(self, session: AsyncSession, id: UUID, address_raw: AddressUpdateAPI) -> Address:
+        city, street, building = self._parse_location(address_raw.location)
+        lat, lon = await self._geocode(address_raw.location)
+        obj_in = AddressUpdate(
+            city=city,
+            street=street,
+            building=building,
+            lat=lat,
+            lon=lon,
+        )
         return await super().update_by_id(session, id, obj_in)
+
+    @staticmethod
+    def _parse_location(location: str | None) -> tuple[str, str | None, str]:
+        if location is None:
+            raise BadRequestError("Ошибка адреса: допустимый формат «Город, Улица, Дом» или «Город, Дом»")
+        parts: list[str] = [p.strip() for p in location.split(",")]
+        if len(parts) == 3:
+            return parts[0], parts[1], parts[2]
+        if len(parts) == 2:
+            return parts[0], None, parts[1]
+        raise BadRequestError("Ошибка адреса: допустимый формат «Город, Улица, Дом» или «Город, Дом»")
 
     @staticmethod
     async def _geocode(location: str | None) -> tuple[float, float]:
@@ -39,7 +69,7 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
         4. Если тоже пусто — NotFoundError
         """
         if location is None:
-            raise BadRequestError("Ожидаем «Город, Улица, Дом» или «Город, Дом»")
+            raise BadRequestError("Ошибка адреса: допустимый формат «Город, Улица, Дом» или «Город, Дом»")
         parts: list[str] = [p.strip() for p in location.split(",")]
         if len(parts) not in (2, 3):
             raise BadRequestError("Ошибка адреса: допустимый формат «Город, Улица, Дом» или «Город, Дом»")

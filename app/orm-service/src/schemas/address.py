@@ -16,6 +16,10 @@ class AddressCreateAPI(BaseModel):
     location: str = Field(..., min_length=5)
 
 
+class AddressUpdateAPI(BaseModel):
+    location: str | None
+
+
 class AddressCreate(_AddressBase):
     pass
 
