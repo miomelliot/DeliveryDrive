@@ -3,22 +3,21 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from src.schemas.address import AddressCreate, AddressRead
+from src.schemas.address import AddressRead
 
 
 class _ClientBase(BaseModel):
-    name: str
+    name: str | None
     phone: str
 
 
 class ClientCreate(_ClientBase):
-    location: AddressCreate
+    address_id: UUID
 
 
 class ClientUpdate(BaseModel):
     name: str | None
     phone: str | None
-    location: AddressCreate | None
 
 
 class ClientRead(_ClientBase):

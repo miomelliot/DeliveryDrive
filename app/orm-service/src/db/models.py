@@ -115,8 +115,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(Text, unique=True)
     avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     password_hash: Mapped[str] = mapped_column(Text)
-
     role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="RESTRICT"))
+
     role: Mapped[Role] = relationship()
 
     notifications: Mapped[list["Notification"]] = relationship(
@@ -152,6 +152,7 @@ class Warehouse(Base):
     __tablename__ = "warehouse"
     id: Mapped[UUID] = uuid_pk()
     address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="CASCADE"))
+
     address: Mapped[Address] = relationship()
 
 
@@ -159,9 +160,10 @@ class Warehouse(Base):
 class Client(Base):
     __tablename__ = "client"
     id: Mapped[UUID] = uuid_pk()
-    name: Mapped[str] = mapped_column(Text)
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
     phone: Mapped[str] = mapped_column(Text)
     address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="SET NULL"))
+
     address: Mapped[Address] = relationship()
 
 
@@ -169,15 +171,11 @@ class Order(Base):
     __tablename__ = "order"
     id: Mapped[UUID] = uuid_pk()
     client_id: Mapped[UUID] = mapped_column(ForeignKey(Client.id, ondelete="CASCADE"))
-    created_at: Mapped[dt_datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(tz.utc),
-    )
+    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     window_start: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
     window_end: Mapped[dt_time] = mapped_column(Time, default=time(21, 0))
     rent_start: Mapped[dt_date] = mapped_column(Date)
     rent_end: Mapped[dt_date] = mapped_column(Date)
-
     status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -251,6 +249,7 @@ class Route(Base):
     date: Mapped[dt_date] = mapped_column(Date)
     planned_start: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
+
     items: Mapped[list["RouteItem"]] = relationship(
         cascade="all, delete-orphan",
         passive_deletes=True,

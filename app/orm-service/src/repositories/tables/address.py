@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address
 from src.repositories.tables.base import CRUDRepository
-from src.schemas.address import AddressCreate, AddressCreateAPI, AddressUpdate, AddressUpdateAPI
+from src.schemas.address import AddressCreate, AddressUpdate, AddressUpdateAPI
+from src.schemas.order import OrderCreateAPI
 from src.utils.http_error import BadRequestError, NotFoundError
 
 _LOCAL_NOMINATIM_URL: Final[str] = "http://nominatim:8080/search"
@@ -24,9 +25,9 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
     def __init__(self) -> None:
         super().__init__(Address)
 
-    async def create_raw(self, session: AsyncSession, address_raw: AddressCreateAPI) -> Address:
-        city, street, building = self._parse_location(address_raw.location)
-        lat, lon = await self._geocode(address_raw.location)
+    async def create_raw(self, session: AsyncSession, raw_data: OrderCreateAPI) -> Address:
+        city, street, building = self._parse_location(raw_data.location)
+        lat, lon = await self._geocode(raw_data.location)
 
         obj_in = AddressCreate(
             city=city,
