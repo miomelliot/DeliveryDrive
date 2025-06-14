@@ -5,18 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models import User
 from src.dependencies.auth import get_current_user
 from src.dependencies.db import get_session_with_user
-from src.repositories.user import UserBaseRepository, UserCourierRepository, UserManagerRepository
+from src.repositories.tables.user import UserRepository
 from src.schemas.auth import CurrentUser
-from src.schemas.user import (
-    UserCourierCreate,
-    UserCourierRead,
-    UserCourierUpdate,
-    UserManagerCreate,
-    UserManagerRead,
-    UserManagerUpdate,
-)
+from src.schemas.user import UserCreateAPI, UserManagerRead
 
 router = APIRouter(prefix="/user", tags=["User"])
 
@@ -28,13 +22,12 @@ router = APIRouter(prefix="/user", tags=["User"])
     status_code=status.HTTP_201_CREATED,
 )
 async def create_manager_user(
-    data: UserManagerCreate = Depends(),
+    data: UserCreateAPI = Depends(),
     icon: UploadFile | None = None,
     session: AsyncSession = Depends(get_session_with_user),
-    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
-    repo = UserManagerRepository(session)
-    return await repo.create(data, icon)
+    user: User = await UserRepository().create_extended(session, data, icon, "manager")
+    return user
 
 
 @router.patch("/manager/{user_id}", response_model=UserManagerRead)

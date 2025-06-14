@@ -12,7 +12,7 @@ from src.repositories.tables.order import OrderRepository
 from src.schemas.order import OrderCreateAPI
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
 
-router = APIRouter(prefix="/v2/order", tags=["Order v2"])
+router = APIRouter(prefix="/order", tags=["Order"])
 
 
 @router.post("/", response_model=None, status_code=201)
