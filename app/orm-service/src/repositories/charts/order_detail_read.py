@@ -9,7 +9,6 @@ from sqlalchemy.orm import aliased
 
 from src.db.models import (
     Address,
-    BaseLookup,
     Client,
     Contract,
     HeaterType,
@@ -87,8 +86,8 @@ class OrderDetailRepository:
         items: list[OrderItemChart] = [OrderItemChart.model_validate(dict(r._mapping)) for r in item_result.fetchall()]
 
         # 🗓️ История заказа
-        status_new: type[BaseLookup] = aliased(BaseLookup)
-        status_prev: type[BaseLookup] = aliased(BaseLookup)
+        status_new: type[OrderStatus] = aliased(OrderStatus)
+        status_prev: type[OrderStatus] = aliased(OrderStatus)
 
         history_stmt: Select[Tuple[datetime, str, str]] = (
             select(
@@ -153,8 +152,8 @@ class OrderDetailRepository:
         if data.comment is not None:
             order.comment = data.comment
         if data.status is not None:
-            status: BaseLookup | None = await self.session.scalar(
-                select(BaseLookup).where(BaseLookup.description == data.status)
+            status: OrderStatus | None = await self.session.scalar(
+                select(OrderStatus).where(OrderStatus.description == data.status)
             )
             if status is None:
                 raise ValueError(f"Unknown order status: {data.status}")
