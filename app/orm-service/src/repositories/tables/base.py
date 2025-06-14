@@ -1,5 +1,5 @@
 # src/repositories/tables/base.py
-from typing import Any, Protocol, Sequence, Tuple, Type
+from typing import Any, Protocol, Sequence, Tuple
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -19,9 +19,8 @@ class CRUDRepository[
     CreateT: BaseModel,
     UpdateT: BaseModel,
 ]:
-    def __init__(self, model: Type[ModelT], *, user_id: UUID | None = None) -> None:
+    def __init__(self, model: type[ModelT]) -> None:
         self.model: type[ModelT] = model
-        self._user_id: UUID | None = user_id
 
     @staticmethod
     def _as_dict(instance: Any) -> dict[str, Any]:
@@ -38,7 +37,7 @@ class CRUDRepository[
     ) -> None:
         session.add(
             AuditLog(
-                user_id=self._user_id,
+                user_id=session.info.get("user_id"),
                 event=event,
                 target_table=self.model.__tablename__,  # type: ignore
                 old_values=old_values,

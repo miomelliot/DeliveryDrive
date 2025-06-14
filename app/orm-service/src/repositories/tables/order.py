@@ -1,5 +1,7 @@
 # src/repositories/tables/order.py
 
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Client, HeaterType, Order
@@ -8,9 +10,11 @@ from src.repositories.tables.client import ClientRepository
 from src.repositories.tables.equipment import EquipmentRepository
 from src.repositories.tables.heater_type import HeaterTypeRepository
 from src.repositories.tables.invoice import InvoiceRepository
+from src.repositories.tables.order_history import OrderHistoryRepository
 from src.repositories.tables.order_item import OrderItemRepository
 from src.repositories.tables.order_status import OrderStatusRepository
 from src.schemas.order import OrderCreate, OrderCreateAPI, OrderUpdate
+from src.schemas.order_history import OrderHistoryCreate
 from src.schemas.order_item import OrderItemCreate
 
 
@@ -56,4 +60,32 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
 
         await InvoiceRepository().create_from_order(session, order.id)
 
+        return order
+
+    async def update_status(
+        self,
+        session: AsyncSession,
+        order_id: UUID,
+        new_status_code: str,
+    ) -> Order:
+        order = await self.get(session, order_id)
+        new_status_id = await self._repo(OrderStatusRepository).get_id(session, new_status_code)
+
+        if order.status_id == new_status_id:
+            return order
+
+        prev_status_id = order.status_id
+        order.status_id = new_status_id
+        await session.flush()
+        await session.refresh(order)
+
+        await self._repo(OrderHistoryRepository).create(
+            session,
+            OrderHistoryCreate(
+                order_id=order.id,
+                previous_status_id=prev_status_id,
+                new_status_id=new_status_id,
+                user_id=self._user_id,
+            ),
+        )
         return order
