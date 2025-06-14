@@ -15,7 +15,8 @@ from src.api import (
     user,
     user_chart,
 )
-from src.api.v1 import order
+from src.api.v1 import order as order_v1
+from src.api.v2 import order as order_v2
 
 app = FastAPI(title="orm-service")
 
@@ -36,7 +37,8 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # entities
 app.include_router(user.router)
-app.include_router(order.router)
+app.include_router(order_v1.router)
+app.include_router(order_v2.router)
 app.include_router(equipment.router)
 # chart
 app.include_router(user_chart.router)
