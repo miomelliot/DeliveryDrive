@@ -33,8 +33,8 @@ async def create_manager_user(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
-    repo = UserManagerRepository(session)
-    return await repo.create(data, icon)
+    repo: UserManagerRead = await UserManagerRepository().create(session, data, icon)
+    return repo
 
 
 @router.patch("/manager/{user_id}", response_model=UserManagerRead)
@@ -45,8 +45,8 @@ async def update_manager_user(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
-    repo = UserManagerRepository(session)
-    result: UserManagerRead | None = await repo.update(user_id, data, icon)
+    repo = UserManagerRepository()
+    result: UserManagerRead | None = await repo.update(session, user_id, data, icon)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return result
@@ -57,7 +57,7 @@ async def list_managers(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[UserManagerRead]:
-    return await UserManagerRepository(session).list()
+    return await UserManagerRepository().list(session)
 
 
 @router.get("/manager/{user_id}", response_model=UserManagerRead)
@@ -66,7 +66,7 @@ async def get_manager(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
-    result: UserManagerRead | None = await UserManagerRepository(session).get(user_id)
+    result: UserManagerRead | None = await UserManagerRepository().get(session, user_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return result
@@ -84,8 +84,8 @@ async def create_courier_user(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
-    repo = UserCourierRepository(session)
-    return await repo.create(data, icon)
+    repo = UserCourierRepository()
+    return await repo.create(session, data, icon)
 
 
 @router.patch("/courier/{user_id}", response_model=UserCourierRead)
@@ -96,8 +96,8 @@ async def update_courier_user(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
-    repo = UserCourierRepository(session)
-    result: UserCourierRead | None = await repo.update(user_id, data, icon)
+    repo = UserCourierRepository()
+    result: UserCourierRead | None = await repo.update(session, user_id, data, icon)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return result
@@ -108,7 +108,7 @@ async def list_couriers(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[UserCourierRead]:
-    return await UserCourierRepository(session).list()
+    return await UserCourierRepository().list(session)
 
 
 @router.get("/courier/{user_id}", response_model=UserCourierRead)
@@ -117,7 +117,7 @@ async def get_courier(
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
-    result: UserCourierRead | None = await UserCourierRepository(session).get(user_id)
+    result: UserCourierRead | None = await UserCourierRepository().get(session, user_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return result
@@ -131,7 +131,7 @@ async def delete_user(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> JSONResponse:
     """Удалить любого пользователя по ID (404, если не найден)."""
-    deleted: bool = await UserBaseRepository(session).delete(user_id)
+    deleted: bool = await UserBaseRepository().delete(session, user_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
 
