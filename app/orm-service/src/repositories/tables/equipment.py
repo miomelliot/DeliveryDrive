@@ -66,7 +66,6 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
         if len(equipment_list) < limit:
             raise ConflictError(f"Недостаточно оборудования модели '{model}' на складе")
 
-        # Обновляем статус у каждого
         for eq in equipment_list:
             eq.equipment_status_id = new_status_id
 

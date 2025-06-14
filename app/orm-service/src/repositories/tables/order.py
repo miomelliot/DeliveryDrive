@@ -55,5 +55,5 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
             )
 
         await InvoiceRepository().create_from_order(session, order.id)
-        
+
         return order

@@ -26,5 +26,3 @@ class InvoiceRepository(CRUDRepository[Invoice, InvoiceCreate, InvoiceUpdate]):
         )
 
         return await super().create(session, obj_in)
-    
-    

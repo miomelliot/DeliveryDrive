@@ -30,5 +30,5 @@ class OrderItemDetailed(BaseModel):
     price: Decimal
     weight: float
     quantity: int
-    
+
     model_config = ConfigDict(from_attributes=True)

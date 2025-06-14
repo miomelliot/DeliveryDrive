@@ -3,9 +3,10 @@ from typing import Any, Protocol, Sequence, Tuple, Type
 from uuid import UUID
 
 from pydantic import BaseModel
-from sqlalchemy import Result, Select, delete, select
+from sqlalchemy import Result, Select, delete, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models import AuditLog
 from src.utils.http_error import ConflictError
 
 
@@ -18,8 +19,32 @@ class CRUDRepository[
     CreateT: BaseModel,
     UpdateT: BaseModel,
 ]:
-    def __init__(self, model: Type[ModelT]) -> None:
+    def __init__(self, model: Type[ModelT], *, user_id: UUID | None = None) -> None:
         self.model: type[ModelT] = model
+        self._user_id: UUID | None = user_id
+
+    @staticmethod
+    def _as_dict(instance: Any) -> dict[str, Any]:
+        mapper = inspect(instance)
+        return {c.key: getattr(instance, c.key) for c in mapper.mapper.column_attrs}
+
+    async def _write_log(
+        self,
+        session: AsyncSession,
+        *,
+        event: str,
+        old_values: dict[str, Any] | None,
+        new_values: dict[str, Any] | None,
+    ) -> None:
+        session.add(
+            AuditLog(
+                user_id=self._user_id,
+                event=event,
+                target_table=self.model.__tablename__,  # type: ignore
+                old_values=old_values,
+                new_values=new_values,
+            )
+        )
 
     # -------------------- READ --------------------
     async def get(self, session: AsyncSession, id: UUID | int) -> ModelT:
@@ -43,14 +68,31 @@ class CRUDRepository[
         session.add(db_obj)
         await session.flush()
         await session.refresh(db_obj)
+
+        await self._write_log(
+            session,
+            event="CREATE",
+            old_values=None,
+            new_values=self._as_dict(db_obj),
+        )
         return db_obj
 
     # -------------------- UPDATE --------------------
     async def update(self, session: AsyncSession, db_obj: ModelT, obj_in: UpdateT) -> ModelT:
+        old_snapshot: dict[str, Any] = self._as_dict(db_obj)
+
         for field, value in obj_in.model_dump(exclude_unset=True, exclude_none=True).items():
             setattr(db_obj, field, value)
+
         await session.flush()
         await session.refresh(db_obj)
+
+        await self._write_log(
+            session,
+            event="UPDATE",
+            old_values=old_snapshot,
+            new_values=self._as_dict(db_obj),
+        )
         return db_obj
 
     async def update_by_id(self, session: AsyncSession, id: UUID | int, obj_in: UpdateT) -> ModelT:
@@ -59,4 +101,12 @@ class CRUDRepository[
 
     # -------------------- DELETE --------------------
     async def delete(self, session: AsyncSession, id: UUID | int) -> None:
+        instance: ModelT = await self.get(session, id)
         await session.execute(delete(self.model).where(self.model.id == id))
+
+        await self._write_log(
+            session,
+            event="DELETE",
+            old_values=self._as_dict(instance),
+            new_values=None,
+        )
