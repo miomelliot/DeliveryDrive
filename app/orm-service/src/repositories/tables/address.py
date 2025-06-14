@@ -91,11 +91,14 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
 
     @staticmethod
     async def _fetch_coords(url: str, params: dict[str, Any]) -> tuple[float, float] | None:
-        async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=HEADERS) as client:
-            resp: httpx.Response = await client.get(url, params=params)
-            if resp.status_code != 200:
-                return None
-            data = resp.json()
-            if not data:
-                return None
-            return float(data[0]["lat"]), float(data[0]["lon"])
+        try:
+            async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, headers=HEADERS) as client:
+                resp: httpx.Response = await client.get(url, params=params)
+                if resp.status_code != 200:
+                    return None
+                data = resp.json()
+                if not data:
+                    return None
+                return float(data[0]["lat"]), float(data[0]["lon"])
+        except httpx.HTTPError:
+            return None
