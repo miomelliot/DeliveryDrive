@@ -1,4 +1,5 @@
 # src/schemas/order_item.py
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -20,4 +21,14 @@ class OrderItemUpdate(BaseModel):
 
 class OrderItemRead(_OrderItemBase):
     id: UUID
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderItemDetailed(BaseModel):
+    serial_number: str
+    model: str
+    price: Decimal
+    weight: float
+    quantity: int
+    
     model_config = ConfigDict(from_attributes=True)
