@@ -9,10 +9,10 @@ from src.db.models import Order
 from src.db.session import get_session
 from src.dependencies.auth import get_current_user
 from src.repositories.charts.order_chart import OrderChartRepository
-from src.repositories.order import OrderRepository
 from src.repositories.charts.order_detail_read import OrderDetailRepository
+from src.repositories.order import OrderRepository
 from src.schemas.auth import CurrentUser
-from src.schemas.order import OrderCreate
+from src.schemas.order import OrderCreateAPI
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
 
 router = APIRouter(prefix="/order", tags=["Order"])
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/order", tags=["Order"])
 
 @router.post("/", response_model=None, status_code=201)
 async def create_order(
-    data: OrderCreate,
+    data: OrderCreateAPI,
     session: AsyncSession = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, str]:
