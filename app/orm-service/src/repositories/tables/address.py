@@ -15,7 +15,7 @@ from src.schemas.order import OrderCreateAPI
 from src.schemas.warehouse import WarehouseCreateAPI
 from src.utils.http_error import BadRequestError, NotFoundError
 
-_LOCAL_NOMINATIM_URL: Final[str] = "http://nominatim:8080/search"
+_LOCAL_NOMINATIM_URL: Final[str] = "http://localhost:7070/search"
 _PUBLIC_NOMINATIM_URL: Final[str] = "https://nominatim.openstreetmap.org/search"
 _HTTP_TIMEOUT = httpx.Timeout(10)  # сек
 
