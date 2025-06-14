@@ -11,8 +11,8 @@ from src.schemas.order_history import OrderHistoryCreate, OrderHistoryUpdate
 
 
 class OrderHistoryRepository(CRUDRepository[OrderHistory, OrderHistoryCreate, OrderHistoryUpdate]):
-    def __init__(self, *, user_id: UUID | None = None) -> None:
-        super().__init__(OrderHistory, user_id=user_id)
+    def __init__(self) -> None:
+        super().__init__(OrderHistory)
 
     # --- запрещённые операции -------------------------------------------
     async def update(

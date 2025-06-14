@@ -60,6 +60,15 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
 
         await InvoiceRepository().create_from_order(session, order.id)
 
+        await OrderHistoryRepository().create(
+            session,
+            OrderHistoryCreate(
+                order_id=order.id,
+                previous_status_id=None,
+                new_status_id=status_id,
+                user_id=session.info.get("user_id"),
+            ),
+        )
         return order
 
     async def update_status(
