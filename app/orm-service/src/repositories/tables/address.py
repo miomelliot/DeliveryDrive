@@ -12,6 +12,7 @@ from src.db.models import Address
 from src.repositories.tables.base import CRUDRepository
 from src.schemas.address import AddressCreate, AddressUpdate, AddressUpdateAPI
 from src.schemas.order import OrderCreateAPI
+from src.schemas.warehouse import WarehouseCreateAPI
 from src.utils.http_error import BadRequestError, NotFoundError
 
 _LOCAL_NOMINATIM_URL: Final[str] = "http://nominatim:8080/search"
@@ -25,7 +26,7 @@ class AddressRepository(CRUDRepository[Address, AddressCreate, AddressUpdate]):
     def __init__(self) -> None:
         super().__init__(Address)
 
-    async def create_raw(self, session: AsyncSession, raw_data: OrderCreateAPI) -> Address:
+    async def create_raw(self, session: AsyncSession, raw_data: OrderCreateAPI | WarehouseCreateAPI) -> Address:
         city, street, building = self._parse_location(raw_data.location)
         lat, lon = await self._geocode(raw_data.location)
 

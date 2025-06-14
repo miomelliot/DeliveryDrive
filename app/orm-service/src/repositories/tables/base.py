@@ -22,7 +22,7 @@ class CRUDRepository[
         self.model: type[ModelT] = model
 
     # -------------------- READ --------------------
-    async def get(self, session: AsyncSession, id: UUID) -> ModelT:
+    async def get(self, session: AsyncSession, id: UUID | int) -> ModelT:
         stmt: Select[Tuple[ModelT]] = select(self.model).where(self.model.id == id)
         res: Result[Tuple[ModelT]] = await session.execute(stmt)
         instance: ModelT | None = res.scalars().first()
@@ -53,10 +53,10 @@ class CRUDRepository[
         await session.refresh(db_obj)
         return db_obj
 
-    async def update_by_id(self, session: AsyncSession, id: UUID, obj_in: UpdateT) -> ModelT:
+    async def update_by_id(self, session: AsyncSession, id: UUID | int, obj_in: UpdateT) -> ModelT:
         db_obj: ModelT = await self.get(session, id)
         return await self.update(session, db_obj, obj_in)
 
     # -------------------- DELETE --------------------
-    async def delete(self, session: AsyncSession, id: UUID) -> None:
+    async def delete(self, session: AsyncSession, id: UUID | int) -> None:
         await session.execute(delete(self.model).where(self.model.id == id))

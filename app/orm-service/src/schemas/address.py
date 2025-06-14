@@ -13,7 +13,7 @@ class _AddressBase(BaseModel):
 
 
 class AddressCreateAPI(BaseModel):
-    location: str = Field(..., min_length=5)
+    location: str = Field(..., min_length=5, examples=["Москва, Ленинский проспект, 37А"])
 
 
 class AddressUpdateAPI(BaseModel):

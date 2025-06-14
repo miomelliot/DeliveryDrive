@@ -23,3 +23,9 @@ class HeaterTypeRepository(CRUDRepository[HeaterType, HeaterTypeCreate, HeaterTy
             raise NotFoundError(f"{model} не найдено")
 
         return instance
+
+    async def create(self, session: AsyncSession, obj_in: HeaterTypeCreate) -> HeaterType:
+        id: int = await self.get_id(session, obj_in.model)
+        if id:
+            return await super().get(session, id)
+        return await super().create(session, obj_in)
