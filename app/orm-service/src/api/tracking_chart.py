@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.session import get_session
 from src.dependencies.auth import get_current_user
+from src.dependencies.db import get_session_with_user
 from src.repositories.charts.tracking_chart import TrackingChartRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.routing_chart import RoutingChartFilter
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/charts/tracking", tags=["Tracking Chart"])
 async def get_tracking_chart(
     route_id: UUID = Query(...),
     filters: RoutingChartFilter = Depends(),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> TrackingChart:
     repo = TrackingChartRepository(session)

@@ -41,6 +41,7 @@ class OrderItemRepository(CRUDRepository[OrderItem, OrderItemCreate, OrderItemUp
     async def get_total_amount(self, session: AsyncSession, order_id: UUID) -> Decimal:
         stmt: Select[Tuple[float]] = (
             select(func.sum(HeaterType.price * OrderItem.quantity))
+            .select_from(OrderItem)
             .join(HeaterType, HeaterType.id == OrderItem.heater_type_id)
             .where(OrderItem.order_id == order_id)
         )

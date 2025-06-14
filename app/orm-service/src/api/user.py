@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.session import get_session
 from src.dependencies.auth import get_current_user
+from src.dependencies.db import get_session_with_user
 from src.repositories.user import UserBaseRepository, UserCourierRepository, UserManagerRepository
 from src.schemas.auth import CurrentUser
 from src.schemas.user import (
@@ -30,7 +30,7 @@ router = APIRouter(prefix="/user", tags=["User"])
 async def create_manager_user(
     data: UserManagerCreate = Depends(),
     icon: UploadFile | None = None,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
@@ -42,7 +42,7 @@ async def update_manager_user(
     user_id: UUID,
     data: UserManagerUpdate = Depends(),
     icon: UploadFile | None = None,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     repo = UserManagerRepository(session)
@@ -54,7 +54,7 @@ async def update_manager_user(
 
 @router.get("/manager", response_model=list[UserManagerRead])
 async def list_managers(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[UserManagerRead]:
     return await UserManagerRepository(session).list()
@@ -63,7 +63,7 @@ async def list_managers(
 @router.get("/manager/{user_id}", response_model=UserManagerRead)
 async def get_manager(
     user_id: UUID,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserManagerRead:
     result: UserManagerRead | None = await UserManagerRepository(session).get(user_id)
@@ -81,7 +81,7 @@ async def get_manager(
 async def create_courier_user(
     data: UserCourierCreate = Depends(),
     icon: UploadFile | None = None,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
@@ -93,7 +93,7 @@ async def update_courier_user(
     user_id: UUID,
     data: UserCourierUpdate = Depends(),
     icon: UploadFile | None = None,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     repo = UserCourierRepository(session)
@@ -105,7 +105,7 @@ async def update_courier_user(
 
 @router.get("/courier", response_model=list[UserCourierRead])
 async def list_couriers(
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[UserCourierRead]:
     return await UserCourierRepository(session).list()
@@ -114,7 +114,7 @@ async def list_couriers(
 @router.get("/courier/{user_id}", response_model=UserCourierRead)
 async def get_courier(
     user_id: UUID,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> UserCourierRead:
     result: UserCourierRead | None = await UserCourierRepository(session).get(user_id)
@@ -127,7 +127,7 @@ async def get_courier(
 @router.delete("/{user_id}", status_code=200)
 async def delete_user(
     user_id: UUID,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> JSONResponse:
     """Удалить любого пользователя по ID (404, если не найден)."""

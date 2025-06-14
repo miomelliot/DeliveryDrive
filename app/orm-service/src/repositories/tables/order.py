@@ -68,24 +68,24 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         order_id: UUID,
         new_status_code: str,
     ) -> Order:
-        order = await self.get(session, order_id)
-        new_status_id = await self._repo(OrderStatusRepository).get_id(session, new_status_code)
+        order: Order = await self.get(session, order_id)
+        new_status_id: int = await OrderStatusRepository().get_id(session, new_status_code)
 
         if order.status_id == new_status_id:
             return order
 
-        prev_status_id = order.status_id
+        prev_status_id: int = order.status_id
         order.status_id = new_status_id
         await session.flush()
         await session.refresh(order)
 
-        await self._repo(OrderHistoryRepository).create(
+        await OrderHistoryRepository().create(
             session,
             OrderHistoryCreate(
                 order_id=order.id,
                 previous_status_id=prev_status_id,
                 new_status_id=new_status_id,
-                user_id=self._user_id,
+                user_id=session.info.get("user_id"),
             ),
         )
         return order

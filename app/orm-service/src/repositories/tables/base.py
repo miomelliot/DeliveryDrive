@@ -1,4 +1,6 @@
 # src/repositories/tables/base.py
+from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Any, Protocol, Sequence, Tuple
 from uuid import UUID
 
@@ -22,10 +24,21 @@ class CRUDRepository[
     def __init__(self, model: type[ModelT]) -> None:
         self.model: type[ModelT] = model
 
+    # ------------------ helpers ------------------
+    @staticmethod
+    def _to_serializable(value: Any) -> Any:
+        if isinstance(value, UUID):
+            return str(value)
+        if isinstance(value, (datetime, date, time)):
+            return value.isoformat()
+        if isinstance(value, Decimal):
+            return float(value)
+        return value
+
     @staticmethod
     def _as_dict(instance: Any) -> dict[str, Any]:
         mapper = inspect(instance)
-        return {c.key: getattr(instance, c.key) for c in mapper.mapper.column_attrs}
+        return {c.key: CRUDRepository._to_serializable(getattr(instance, c.key)) for c in mapper.mapper.column_attrs}
 
     async def _write_log(
         self,
