@@ -22,6 +22,7 @@ from src.schemas.user import (
     UserManagerRead,
     UserManagerUpdate,
 )
+from src.utils.http_error import ConflictError, NotFoundError
 
 # где физически храним png
 SAVE_DIR = Path("/app/static/icons")
@@ -29,31 +30,27 @@ SAVE_DIR = Path("/app/static/icons")
 
 # ─────────────────────────── Base ───────────────────────────
 class UserBaseRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session: AsyncSession = session
-
     # ---------- CRUD ----------
-    async def delete(self, user_id: UUID) -> bool:
+    async def delete(self, session: AsyncSession, user_id: UUID) -> bool:
         """
         Удаляет пользователя и возвращает True, если запись действительно была,
         иначе False.
         """
         stmt: ReturningDelete[Tuple[UUID]] = sa_delete(User).where(User.id == user_id).returning(User.id)
-        res: Result[Tuple[UUID]] = await self.session.execute(stmt)
-        await self.session.commit()
+        res: Result[Tuple[UUID]] = await session.execute(stmt)
         return res.scalar_one_or_none() is not None
 
     # ---------- helpers ----------
-    async def _get_role(self, name: str) -> Role:
-        role: Role | None = await self.session.scalar(select(Role).where(Role.name == name))
+    async def _get_role(self, session: AsyncSession, name: str) -> Role:
+        role: Role | None = await session.scalar(select(Role).where(Role.name == name))
         if role is None:
-            raise ValueError(f"Role '{name}' not found")
+            raise NotFoundError(f"Роль '{name}' не найдена")
         return role
 
-    async def _get_transport_type(self, name: str) -> TransportType:
-        tt: TransportType | None = await self.session.scalar(select(TransportType).where(TransportType.name == name))
+    async def _get_transport_type(self, session: AsyncSession, name: str) -> TransportType:
+        tt: TransportType | None = await session.scalar(select(TransportType).where(TransportType.name == name))
         if tt is None:
-            raise ValueError(f"TransportType '{name}' not found")
+            raise NotFoundError(f"Транспорт тип '{name}' не найдена")
         return tt
 
     async def _save_icon(self, user_id: UUID, icon: UploadFile) -> str:
@@ -67,8 +64,8 @@ class UserBaseRepository:
 
 # ───────────────────────── Manager ─────────────────────────
 class UserManagerRepository(UserBaseRepository):
-    async def create(self, data: UserManagerCreate, icon: UploadFile | None) -> UserManagerRead:
-        role: Role = await self._get_role("manager")
+    async def create(self, session: AsyncSession, data: UserManagerCreate, icon: UploadFile | None) -> UserManagerRead:
+        role: Role = await self._get_role(session, "manager")
         user_id: UUID = uuid7()
         avatar: str | None = await self._save_icon(user_id, icon) if icon else None
 
@@ -82,13 +79,12 @@ class UserManagerRepository(UserBaseRepository):
             role_id=role.id,
             avatar_path=avatar,
         )
-        self.session.add(user)
+        session.add(user)
         try:
-            await self.session.commit()
+            await session.flush()
         except Exception as e:
-            await self.session.rollback()
             if "user_email_key" in str(e):
-                raise ValueError("Пользователь с таким email уже существует") from e
+                raise ConflictError("Пользователь с таким email уже существует") from e
             raise
 
         return UserManagerRead(
@@ -100,7 +96,9 @@ class UserManagerRepository(UserBaseRepository):
             avatar_path=user.avatar_path,
         )
 
-    async def update(self, user_id: UUID, data: UserManagerUpdate, icon: UploadFile | None) -> UserManagerRead | None:
+    async def update(
+        self, session: AsyncSession, user_id: UUID, data: UserManagerUpdate, icon: UploadFile | None
+    ) -> UserManagerRead | None:
         values: dict[str, Any] = data.model_dump(exclude_unset=True, exclude_none=True)
         if "password" in values:
             values["password_hash"] = hash_password(values.pop("password"))
@@ -108,10 +106,9 @@ class UserManagerRepository(UserBaseRepository):
             values["avatar_path"] = await self._save_icon(user_id, icon)
 
         if values:
-            await self.session.execute(sa_update(User).where(User.id == user_id).values(**values))
-            await self.session.commit()
+            await session.execute(sa_update(User).where(User.id == user_id).values(**values))
 
-        user: User | None = await self.session.get(User, user_id)
+        user: User | None = await session.get(User, user_id)
         if user is None:
             return None
 
@@ -124,9 +121,9 @@ class UserManagerRepository(UserBaseRepository):
             avatar_path=user.avatar_path,
         )
 
-    async def list(self) -> list[UserManagerRead]:
+    async def list(self, session: AsyncSession) -> list[UserManagerRead]:
         stmt: Select[Tuple[User]] = select(User).join(Role, User.role_id == Role.id).where(Role.name == "manager")
-        rows: ScalarResult[User] = await self.session.scalars(stmt)
+        rows: ScalarResult[User] = await session.scalars(stmt)
         return [
             UserManagerRead(
                 id=user.id,
@@ -139,8 +136,8 @@ class UserManagerRepository(UserBaseRepository):
             for user in rows
         ]
 
-    async def get(self, user_id: UUID) -> UserManagerRead | None:
-        user: User | None = await self.session.get(User, user_id)
+    async def get(self, session: AsyncSession, user_id: UUID) -> UserManagerRead | None:
+        user: User | None = await session.get(User, user_id)
         if user is None:
             return None
         return UserManagerRead(
@@ -155,8 +152,8 @@ class UserManagerRepository(UserBaseRepository):
 
 # ───────────────────────── Courier ─────────────────────────
 class UserCourierRepository(UserBaseRepository):
-    async def create(self, data: UserCourierCreate, icon: UploadFile | None) -> UserCourierRead:
-        role: Role = await self._get_role("courier")
+    async def create(self, session: AsyncSession, data: UserCourierCreate, icon: UploadFile | None) -> UserCourierRead:
+        role: Role = await self._get_role(session, "courier")
         user_id: UUID = uuid7()
         avatar: str | None = await self._save_icon(user_id, icon) if icon else None
 
@@ -170,25 +167,23 @@ class UserCourierRepository(UserBaseRepository):
             role_id=role.id,
             avatar_path=avatar,
         )
-        self.session.add(user)
+        session.add(user)
 
         try:
-            await self.session.flush()  # теперь тут
-            self.session.add(
+            await session.flush()
+            session.add(
                 CourierSchedule(
                     courier_id=user_id,
                     start_time=data.start_time,
                     end_time=data.end_time,
                 )
             )
-            tt: TransportType = await self._get_transport_type(data.transport_name)
-            self.session.add(Transport(courier_id=user_id, transport_type_id=tt.id))
+            tt: TransportType = await self._get_transport_type(session, data.transport_name)
+            session.add(Transport(courier_id=user_id, transport_type_id=tt.id))
 
-            await self.session.commit()
         except Exception as e:
-            await self.session.rollback()
             if "user_email_key" in str(e):
-                raise ValueError("Курьер с таким email уже существует") from e
+                raise ConflictError("Курьер с таким email уже существует") from e
             raise
 
         return UserCourierRead(
@@ -203,7 +198,9 @@ class UserCourierRepository(UserBaseRepository):
             transport_name=tt.name,  # type: ignore
         )
 
-    async def update(self, user_id: UUID, data: UserCourierUpdate, icon: UploadFile | None) -> UserCourierRead | None:  # noqa: C901
+    async def update(  # noqa: C901
+        self, session: AsyncSession, user_id: UUID, data: UserCourierUpdate, icon: UploadFile | None
+    ) -> UserCourierRead | None:
         values: dict[str, Any] = data.model_dump(
             exclude_unset=True,
             exclude_none=True,
@@ -215,7 +212,7 @@ class UserCourierRepository(UserBaseRepository):
             values["avatar_path"] = await self._save_icon(user_id, icon)
 
         if values:
-            await self.session.execute(sa_update(User).where(User.id == user_id).values(**values))
+            await session.execute(sa_update(User).where(User.id == user_id).values(**values))
 
         # расписание
         if data.start_time is not None or data.end_time is not None:
@@ -227,38 +224,36 @@ class UserCourierRepository(UserBaseRepository):
                 }.items()
                 if v is not None
             }
-            await self.session.execute(
+            await session.execute(
                 sa_update(CourierSchedule).where(CourierSchedule.courier_id == user_id).values(**sched_vals)
             )
 
         # транспорт
         if data.transport_name:
-            tt: TransportType = await self._get_transport_type(data.transport_name)
-            await self.session.execute(
+            tt: TransportType = await self._get_transport_type(session, data.transport_name)
+            await session.execute(
                 sa_update(Transport).where(Transport.courier_id == user_id).values(transport_type_id=tt.id)
             )
             transport_name: str = tt.name
         else:
-            tt_existing: TransportType | None = await self.session.scalar(
+            tt_existing: TransportType | None = await session.scalar(
                 select(TransportType)
                 .join(Transport, Transport.transport_type_id == TransportType.id)
                 .where(Transport.courier_id == user_id)
             )
             if tt_existing is None:
-                raise ValueError(f"Тип транспорта не найден для курьера {user_id}")
+                raise NotFoundError(f"Тип транспорта не найден для курьера {user_id}")
             transport_name = tt_existing.name
 
-        await self.session.commit()
-
-        user: User | None = await self.session.get(User, user_id)
+        user: User | None = await session.get(User, user_id)
         if user is None:
             return None
 
-        sched: CourierSchedule | None = await self.session.scalar(
+        sched: CourierSchedule | None = await session.scalar(
             select(CourierSchedule).where(CourierSchedule.courier_id == user_id)
         )
         if sched is None:
-            raise ValueError(f"Не найдено расписание курьера {user_id}")
+            raise NotFoundError(f"Не найдено расписание курьера {user_id}")
 
         return UserCourierRead(
             id=user.id,
@@ -272,14 +267,14 @@ class UserCourierRepository(UserBaseRepository):
             transport_name=transport_name,  # type: ignore
         )
 
-    async def list(self) -> list[UserCourierRead]:
+    async def list(self, session: AsyncSession) -> list[UserCourierRead]:
         stmt: Select[Tuple[User, CourierSchedule, str]] = (
             select(User, CourierSchedule, TransportType.name)
             .join(CourierSchedule, CourierSchedule.courier_id == User.id)
             .join(Transport, Transport.courier_id == User.id)
             .join(TransportType, Transport.transport_type_id == TransportType.id)
         )
-        rows: Result[Tuple[User, CourierSchedule, str]] = await self.session.execute(stmt)
+        rows: Result[Tuple[User, CourierSchedule, str]] = await session.execute(stmt)
 
         result: list[UserCourierRead] = []
         for user, sched, tt_name in rows:
@@ -298,15 +293,15 @@ class UserCourierRepository(UserBaseRepository):
             )
         return result
 
-    async def get(self, user_id: UUID) -> UserCourierRead | None:
-        user: User | None = await self.session.get(User, user_id)
+    async def get(self, session: AsyncSession, user_id: UUID) -> UserCourierRead | None:
+        user: User | None = await session.get(User, user_id)
         if user is None:
             return None
 
-        sched: CourierSchedule | None = await self.session.scalar(
+        sched: CourierSchedule | None = await session.scalar(
             select(CourierSchedule).where(CourierSchedule.courier_id == user_id)
         )
-        tt_name: str | None = await self.session.scalar(
+        tt_name: str | None = await session.scalar(
             select(TransportType.name)
             .join(Transport, Transport.transport_type_id == TransportType.id)
             .where(Transport.courier_id == user_id)

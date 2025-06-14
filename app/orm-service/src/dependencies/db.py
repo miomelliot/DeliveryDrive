@@ -1,3 +1,4 @@
+# src/dependencies/db.py
 from collections.abc import AsyncGenerator
 
 from fastapi import Depends
