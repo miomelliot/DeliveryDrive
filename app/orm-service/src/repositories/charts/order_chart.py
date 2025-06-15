@@ -7,7 +7,7 @@ from sqlalchemy import Function, Result, Select, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Address, BaseLookup, Client, Order, Route, RouteItem, User
+from src.db.models import Address, Client, Order, OrderStatus, Route, RouteItem, User
 from src.schemas.order_chart import OrderChartFilter, OrderChartRead
 from src.utils.formatters import format_time_range
 from src.utils.sqlalchemy_expr import full_name_expr, location_expr
@@ -28,12 +28,12 @@ class OrderChartRepository:
                 Order.window_end,
                 Client.phone,
                 location_expr().label("location"),
-                BaseLookup.description.label("status"),
+                OrderStatus.description.label("status"),
                 full_name_expr().label("full_name"),
             )
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
-            .join(BaseLookup, BaseLookup.id == Order.status_id)
+            .join(OrderStatus, OrderStatus.id == Order.status_id)
             .outerjoin(RouteItem, RouteItem.order_id == Order.id)
             .outerjoin(Route, Route.id == RouteItem.route_id)
             .outerjoin(User, User.id == Route.courier_id)
@@ -44,13 +44,13 @@ class OrderChartRepository:
             full_name: Function[Any] = func.lower(full_name_expr())
             stmt = stmt.where(
                 func.lower(Client.phone).like(like)
-                | func.lower(BaseLookup.description).like(like)
+                | func.lower(OrderStatus.description).like(like)
                 | func.lower(location_expr()).like(like)
                 | full_name.like(like)
             )
 
         if filters.status:
-            stmt = stmt.where(BaseLookup.description == filters.status)
+            stmt = stmt.where(OrderStatus.description == filters.status)
 
         if filters.window_start_from:
             stmt = stmt.where(Order.window_start >= filters.window_start_from)
@@ -58,7 +58,7 @@ class OrderChartRepository:
             stmt = stmt.where(Order.window_end <= filters.window_end_to)
 
         if filters.only_active:
-            stmt = stmt.where(~BaseLookup.code.in_(["completed", "cancelled"]))
+            stmt = stmt.where(~OrderStatus.code.in_(["completed", "cancelled"]))
 
         field_map = {
             "id": Order.id,
@@ -67,7 +67,7 @@ class OrderChartRepository:
             "rent_end": Order.rent_end,
             "phone": Client.phone,
             "location": location_expr(),
-            "status": BaseLookup.description,
+            "status": OrderStatus.description,
             "full_name": full_name_expr(),
         }
         col = field_map.get(filters.order_by, Order.id)
@@ -95,7 +95,7 @@ class OrderChartRepository:
         ]
 
     async def get_unique_descriptions(self) -> list[str]:
-        stmt: Select[Tuple[str]] = select(func.distinct(BaseLookup.description)).order_by(BaseLookup.description)
+        stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
         result: Result[Tuple[str]] = await self.session.execute(stmt)
         return [row[0] for row in result.all() if row[0]]
 

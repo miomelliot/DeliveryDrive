@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api import (
+    contract,
     equipment,
     equipment_chart,
     invoice_chart,
@@ -38,6 +39,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.include_router(user.router)
 app.include_router(order.router)
 app.include_router(equipment.router)
+app.include_router(contract.router)
 # chart
 app.include_router(user_chart.router)
 app.include_router(order_chart.router)
