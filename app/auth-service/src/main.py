@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api import auth
+
 app = FastAPI(title="auth-service")
 
 # CORS middleware
