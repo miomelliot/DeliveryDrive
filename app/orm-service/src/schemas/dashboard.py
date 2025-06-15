@@ -9,10 +9,6 @@ class DayCount(BaseModel):
     count: int
 
 
-class OrdersDailyResponse(BaseModel):
-    items: list[DayCount]
-
-
 class OrdersSummaryResponse(BaseModel):
     total: int
     completed: int
@@ -30,3 +26,25 @@ class WarehouseSummaryResponse(BaseModel):
 class EquipmentStockResponse(BaseModel):
     model: str
     quantity: int
+
+
+class OrderStatusDaily(BaseModel):
+    date: date
+    status_code: str
+    count: int
+
+
+class CourierOrdersCount(BaseModel):
+    courier_name: str
+    count: int
+
+
+class EquipmentStatusCount(BaseModel):
+    status_code: str
+    count: int
+
+
+class FinanceDaily(BaseModel):
+    date: date
+    issued: float
+    paid: float

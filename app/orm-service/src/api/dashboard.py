@@ -1,6 +1,5 @@
 # src/api/dashboard.py
 from datetime import date, timedelta
-from typing import List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,56 +7,66 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.dependencies.db import get_session_with_user
 from src.repositories.charts.dashboard import DashboardRepository
 from src.schemas.dashboard import (
+    CourierOrdersCount,
     DayCount,
-    EquipmentStockResponse,
-    OrdersSummaryResponse,
-    WarehouseSummaryResponse,
+    EquipmentStatusCount,
+    FinanceDaily,
+    OrderStatusDaily,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
-@router.get("/orders/daily", response_model=List[DayCount])
+@router.get("/orders/daily", response_model=list[DayCount])
 async def orders_daily(
     from_: date | None = Query(None, alias="from"),
     to: date | None = Query(None, alias="to"),
     session: AsyncSession = Depends(get_session_with_user),
-) -> List[DayCount]:
+) -> list[DayCount]:
     end: date = to or date.today()
     start: date = from_ or (end - timedelta(days=15))
 
-    repo = DashboardRepository()
-    return await repo.orders_count_by_day(session, start, end)
+    return await DashboardRepository().orders_count_by_day(session, start, end)
 
 
-@router.get("/orders/summary", response_model=OrdersSummaryResponse)
-async def orders_summary(
-    date_: date | None = Query(None, alias="date"),
+@router.get("/orders/status_daily", response_model=list[OrderStatusDaily])
+async def orders_status_daily(
+    from_: date | None = Query(None, alias="from"),
+    to: date | None = Query(None, alias="to"),
     session: AsyncSession = Depends(get_session_with_user),
-) -> OrdersSummaryResponse:
-    day = date_ or date.today()
+) -> list[OrderStatusDaily]:
+    end: date = to or date.today()
+    start: date = from_ or (end - timedelta(days=30))
 
-    repo = DashboardRepository()
-    return await repo.orders_summary_for_day(session, day)
+    return await DashboardRepository().orders_by_status_daily(session, start, end)
 
 
-@router.get("/warehouse/summary", response_model=WarehouseSummaryResponse)
-async def warehouse_summary(
+@router.get("/orders/by_courier", response_model=list[CourierOrdersCount])
+async def orders_by_courier(
+    from_: date | None = Query(None, alias="from"),
+    to: date | None = Query(None, alias="to"),
     session: AsyncSession = Depends(get_session_with_user),
-) -> WarehouseSummaryResponse:
-    repo = DashboardRepository()
-    return await repo.warehouse_summary(session)
+) -> list[CourierOrdersCount]:
+    end: date = to or date.today()
+    start: date = from_ or (end - timedelta(days=30))
+
+    return await DashboardRepository().orders_by_courier(session, start, end)
 
 
-@router.get("/equipment/stock", response_model=List[EquipmentStockResponse])
-async def equipment_stock(
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
+@router.get("/equipment/status_counts", response_model=list[EquipmentStatusCount])
+async def equipment_status_counts(
     session: AsyncSession = Depends(get_session_with_user),
-) -> List[EquipmentStockResponse]:
-    offset: int = (page - 1) * size
+) -> list[EquipmentStatusCount]:
+    return await DashboardRepository().equipment_status_counts(session)
 
-    repo = DashboardRepository()
-    items: List[EquipmentStockResponse] = await repo.equipment_stock(session, offset, size)
 
-    return items
+@router.get("/finance/daily", response_model=list[FinanceDaily])
+async def finance_daily(
+    from_: date | None = Query(None, alias="from"),
+    to: date | None = Query(None, alias="to"),
+    session: AsyncSession = Depends(get_session_with_user),
+) -> list[FinanceDaily]:
+    end: date = to or date.today()
+    start: date = from_ or (end - timedelta(days=30))
+
+    return await DashboardRepository().finance_daily(session, start, end)

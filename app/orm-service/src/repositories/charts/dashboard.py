@@ -10,24 +10,27 @@ from src.db.models import (
     Equipment,
     EquipmentStatus,
     HeaterType,
+    Invoice,
     Order,
     OrderStatus,
+    Route,
+    RouteItem,
+    User,
 )
 from src.schemas.dashboard import (
+    CourierOrdersCount,
     DayCount,
+    EquipmentStatusCount,
     EquipmentStockResponse,
+    FinanceDaily,
     OrdersSummaryResponse,
+    OrderStatusDaily,
     WarehouseSummaryResponse,
 )
 
 
 class DashboardRepository:
-    async def orders_count_by_day(
-        self,
-        session: AsyncSession,
-        start: date,
-        end: date,
-    ) -> List[DayCount]:
+    async def orders_count_by_day(self, session: AsyncSession, start: date, end: date) -> List[DayCount]:
         created_date: Label[date] = func.date(Order.created_at).label("day")
 
         stmt: Select[Tuple[date, int]] = (
@@ -40,11 +43,7 @@ class DashboardRepository:
         rows: Sequence[Row[Tuple[date, int]]] = (await session.execute(stmt)).all()
         return [DayCount(date=row[0], count=row[1]) for row in rows]
 
-    async def orders_summary_for_day(
-        self,
-        session: AsyncSession,
-        day: date,
-    ) -> OrdersSummaryResponse:
+    async def orders_summary_for_day(self, session: AsyncSession, day: date) -> OrdersSummaryResponse:
         orders_subq: Subquery = (select(Order.id, Order.status_id).where(func.date(Order.created_at) == day)).subquery()
 
         def count_with_status(code: str) -> ScalarSelect[int]:
@@ -65,10 +64,7 @@ class DashboardRepository:
         row: RowMapping = (await session.execute(stmt)).mappings().one()
         return OrdersSummaryResponse(**row)
 
-    async def warehouse_summary(
-        self,
-        session: AsyncSession,
-    ) -> WarehouseSummaryResponse:
+    async def warehouse_summary(self, session: AsyncSession) -> WarehouseSummaryResponse:
         def count_by_status(code: str) -> ScalarSelect[int]:
             return (
                 select(func.count())
@@ -88,12 +84,7 @@ class DashboardRepository:
         row: RowMapping = (await session.execute(stmt)).mappings().one()
         return WarehouseSummaryResponse(**row)
 
-    async def equipment_stock(
-        self,
-        session: AsyncSession,
-        offset: int,
-        limit: int,
-    ) -> List[EquipmentStockResponse]:
+    async def equipment_stock(self, session: AsyncSession, offset: int, limit: int) -> List[EquipmentStockResponse]:
         quantity: Label[int] = func.count(Equipment.id).filter(EquipmentStatus.code == "available").label("quantity")
 
         stmt: Select[Tuple[str, int]] = (
@@ -113,3 +104,92 @@ class DashboardRepository:
         rows: Sequence[Row[Tuple[str, int]]] = (await session.execute(stmt)).all()
 
         return [EquipmentStockResponse(model=row[0], quantity=row[1] or 0) for row in rows]
+
+    async def orders_by_status_daily(self, session: AsyncSession, start: date, end: date) -> List[OrderStatusDaily]:
+        created_date: Label[date] = func.date(Order.created_at).label("day")
+
+        stmt: Select[Tuple[date, str, int]] = (
+            select(
+                created_date,
+                OrderStatus.code,
+                func.count(),
+            )
+            .join(Order.status)  # relationship
+            .where(created_date.between(start, end))
+            .group_by(created_date, OrderStatus.code)
+            .order_by(created_date, OrderStatus.code)
+        )
+
+        rows: Sequence[Row[Tuple[date, str, int]]] = (await session.execute(stmt)).all()
+
+        return [OrderStatusDaily(date=r[0], status_code=r[1], count=r[2]) for r in rows]
+
+    async def orders_by_courier(
+        self, session: AsyncSession, start: date | None = None, end: date | None = None
+    ) -> List[CourierOrdersCount]:
+        stmt: Select[Tuple[str, int]] = (
+            select(
+                func.concat(User.last_name, " ", User.first_name).label("courier"),
+                func.count(Order.id).label("count"),
+            )
+            .select_from(User)
+            .join(Route, Route.courier_id == User.id)
+            .join(RouteItem, RouteItem.route_id == Route.id)
+            .join(Order, Order.id == RouteItem.order_id)
+        )
+
+        if start and end:
+            stmt = stmt.where(func.date(Route.date).between(start, end))
+
+        stmt = stmt.group_by(User.id).order_by(func.count(Order.id).desc())
+
+        rows: Sequence[Row[Tuple[str, int]]] = (await session.execute(stmt)).all()
+        return [CourierOrdersCount(courier_name=r[0].strip(), count=r[1]) for r in rows]
+
+    async def equipment_status_counts(self, session: AsyncSession) -> List[EquipmentStatusCount]:
+        stmt: Select[Tuple[str, int]] = (
+            select(
+                EquipmentStatus.code,
+                func.count(Equipment.id),
+            )
+            .join(EquipmentStatus.equipment)
+            .group_by(EquipmentStatus.code)
+        )
+
+        rows: Sequence[Row[Tuple[str, int]]] = (await session.execute(stmt)).all()
+        return [EquipmentStatusCount(status_code=r[0], count=r[1]) for r in rows]
+
+    async def finance_daily(self, session: AsyncSession, start: date, end: date) -> List[FinanceDaily]:
+        issued_sum: Label[float] = func.sum(Invoice.amount).label("issued")
+        paid_sum: Label[float] = func.sum(Invoice.amount).label("paid")
+
+        issued_q: Subquery = (
+            select(func.date(Invoice.issued_at).label("day"), issued_sum)
+            .where(
+                Invoice.issued_at.is_not(None),
+                func.date(Invoice.issued_at).between(start, end),
+            )
+            .group_by("day")
+        ).subquery()
+
+        paid_q: Subquery = (
+            select(func.date(Invoice.paid_at).label("day"), paid_sum)
+            .where(
+                Invoice.paid_at.is_not(None),
+                func.date(Invoice.paid_at).between(start, end),
+            )
+            .group_by("day")
+        ).subquery()
+
+        stmt: Select[Tuple[date, float, float]] = (
+            select(
+                func.coalesce(issued_q.c.day, paid_q.c.day).label("day"),
+                func.coalesce(issued_q.c.issued, 0).label("issued"),
+                func.coalesce(paid_q.c.paid, 0).label("paid"),
+            )
+            .select_from(issued_q.outerjoin(paid_q, issued_q.c.day == paid_q.c.day))
+            .order_by("day")
+        )
+
+        rows: Sequence[Row[Tuple[date, float, float]]] = (await session.execute(stmt)).all()
+        return [FinanceDaily(date=r[0], issued=float(r[1]), paid=float(r[2])) for r in rows]

@@ -18,6 +18,7 @@ from src.api import (
     tracking_chart,
     user,
     user_chart,
+    widget,
 )
 
 app = FastAPI(title="orm-service")
@@ -51,6 +52,8 @@ app.include_router(user.router)
 app.include_router(order.router)
 app.include_router(equipment.router)
 app.include_router(contract.router)
+# widget
+app.include_router(widget.router)
 # dashboard
 app.include_router(dashboard.router)
 # chart
