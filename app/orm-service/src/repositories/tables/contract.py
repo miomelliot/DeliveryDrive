@@ -31,12 +31,21 @@ class ContractRepository(CRUDRepository[Contract, ContractCreate, ContractUpdate
     ) -> Contract:
         if not upload.filename:
             raise BadRequestError("Отсутствует имя файла")
+
         ext: str = Path(upload.filename).suffix.lower()
         if ext not in ALLOWED:
-            raise BadRequestError("Недопустимый формат фала принимаеться только .pdf или .png")
+            raise BadRequestError("Недопустимый формат файла. Принимаются только .pdf или .png")
+
+        try:
+            existing: Contract = await self.get_by_order(session, order_id)
+            old_path: Path = Path("/app") / existing.file_path
+            if old_path.exists():
+                old_path.unlink(missing_ok=True)
+            await super().delete(session, existing.id)
+        except NotFoundError:
+            pass
 
         CONTRACT_DIR.mkdir(parents=True, exist_ok=True)
-
         filename: str = f"{secrets.token_hex(16)}{ext}"
         dest: Path = CONTRACT_DIR / filename
 
@@ -45,7 +54,6 @@ class ContractRepository(CRUDRepository[Contract, ContractCreate, ContractUpdate
                 await f.write(chunk)
 
         rel_path: Path = dest.relative_to("/app")
-
         obj_in = ContractCreate(order_id=order_id, file_path=str(rel_path))
         return await super().create(session, obj_in)
 
@@ -59,9 +67,7 @@ class ContractRepository(CRUDRepository[Contract, ContractCreate, ContractUpdate
 
     async def delete_with_file(self, session: AsyncSession, order_id: UUID) -> None:
         contract: Contract = await self.get_by_order(session, order_id)
-
         file_path: Path = Path("/app") / contract.file_path
         if file_path.exists():
             file_path.unlink(missing_ok=True)
-
         await super().delete(session, contract.id)

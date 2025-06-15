@@ -11,7 +11,7 @@ from src.dependencies.db import get_session_with_user
 from src.repositories.tables.contract import ContractRepository
 from src.utils.http_error import GoneError
 
-router = APIRouter(prefix="/contracts", tags=["Contracts"])
+router = APIRouter(prefix="/contract", tags=["Contract"])
 
 
 @router.post("/", response_model=None, status_code=201)
