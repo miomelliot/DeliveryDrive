@@ -9,14 +9,12 @@ class OrderItemChart(BaseModel):
     model: str
     weight: float
     quantity: int
-    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderHistoryChart(BaseModel):
     timestamp: datetime
     previous_status: str | None
     new_status: str
-    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderDetailRead(BaseModel):
@@ -52,4 +50,3 @@ class OrderDetailUpdate(BaseModel):
     invoice_issued_at: date | None = None
     invoice_paid_at: date | None = None
     comment: str | None = None
-    model_config = ConfigDict(from_attributes=True)

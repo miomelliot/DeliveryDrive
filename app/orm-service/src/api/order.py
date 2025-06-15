@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Order
 from src.dependencies.db import get_session_with_user
-from src.repositories.charts.order_chart import OrderChartRepository
 from src.repositories.charts.order_detail_read import OrderDetailRepository
 from src.repositories.tables.order import OrderRepository
 from src.schemas.order import OrderCreateAPI
@@ -64,18 +63,3 @@ async def import_orders(
 ) -> list[dict[str, Any]]:
     created: list[Order] = await OrderRepository().import_file(session, file)
     return [{"id": str(order.id), "client": order.client_id} for order in created]
-
-
-# ────────────────────────────── Lookup helpers ──────────────────────────────
-@router.get("/status", status_code=status.HTTP_201_CREATED, response_model=list[str])
-async def get_order_status(
-    session: AsyncSession = Depends(get_session_with_user),
-) -> list[str]:
-    return await OrderChartRepository().get_unique_descriptions(session)
-
-
-@router.get("/courier-name", response_model=list[str])
-async def get_courier_full_names(
-    session: AsyncSession = Depends(get_session_with_user),
-) -> list[str]:
-    return await OrderChartRepository().get_unique_full_names(session)

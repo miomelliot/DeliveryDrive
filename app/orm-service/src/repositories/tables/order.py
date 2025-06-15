@@ -1,17 +1,34 @@
 # src/repositories/tables/order.py
 import math
 import secrets
-from datetime import date, time
+from datetime import date, datetime, time
 from pathlib import Path
+from typing import Tuple
 from uuid import UUID
 
 import aiofiles
 import pandas as pd
 from fastapi import UploadFile
 from loguru import logger
+from sqlalchemy import RowMapping, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from src.db.models import Client, HeaterType, Order
+from src.db.models import (
+    Address,
+    Client,
+    Contract,
+    HeaterType,
+    Invoice,
+    InvoiceStatus,
+    Order,
+    OrderHistory,
+    OrderItem,
+    OrderStatus,
+    Route,
+    RouteItem,
+    User,
+)
 from src.repositories.tables.base import CRUDRepository
 from src.repositories.tables.client import ClientRepository
 from src.repositories.tables.equipment import EquipmentRepository
@@ -21,15 +38,17 @@ from src.repositories.tables.order_history import OrderHistoryRepository
 from src.repositories.tables.order_item import OrderItemRepository
 from src.repositories.tables.order_status import OrderStatusRepository
 from src.schemas.order import EquipmentList, OrderCreate, OrderCreateAPI, OrderUpdate
+from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate, OrderHistoryChart, OrderItemChart
 from src.schemas.order_history import OrderHistoryCreate
 from src.schemas.order_item import OrderItemCreate
-from src.utils.http_error import BadRequestError
+from src.utils.http_error import BadRequestError, NotFoundError, UnprocessableEntityError
+from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 # IMPORT_DIR = Path("/app/static/imports")
 ALLOWED_EXT: set[str] = {".xlsx", ".csv", ".json"}
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent  # указывает на корень проекта
-STATIC_DIR = ROOT_DIR / "static"
-IMPORT_DIR = STATIC_DIR / "imports"
+ROOT_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
+STATIC_DIR: Path = ROOT_DIR / "static"
+IMPORT_DIR: Path = STATIC_DIR / "imports"
 
 
 class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
@@ -225,3 +244,182 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
                 )
             ],
         )
+
+    async def get_detail(self, session: AsyncSession, order_id: UUID) -> OrderDetailRead:
+        stmt = (
+            select(
+                Order.id,
+                Order.created_at,
+                Order.rent_start,
+                Order.rent_end,
+                Order.window_start,
+                Order.window_end,
+                Client.phone,
+                Client.name.label("client_name"),
+                location_expr().label("location"),
+                OrderStatus.description.label("status"),
+                InvoiceStatus.description.label("invoice_status"),
+                Invoice.issued_at,
+                Invoice.paid_at,
+                Contract.file_path.label("contract_file_path"),
+                Order.comment,
+                full_name_expr().label("courier_name"),
+            )
+            .join(Client, Client.id == Order.client_id)
+            .join(Address, Address.id == Client.address_id)
+            .join(OrderStatus, OrderStatus.id == Order.status_id)
+            .outerjoin(Invoice, Invoice.order_id == Order.id)
+            .outerjoin(InvoiceStatus, InvoiceStatus.id == Invoice.invoice_status_id)
+            .outerjoin(Contract, Contract.order_id == Order.id)
+            .outerjoin(RouteItem, RouteItem.order_id == Order.id)
+            .outerjoin(Route, Route.id == RouteItem.route_id)
+            .outerjoin(User, User.id == Route.courier_id)
+            .where(Order.id == order_id)
+        )
+        row: RowMapping = (await session.execute(stmt)).mappings().one()
+
+        item_stmt: Select[Tuple[str, float, int]] = (
+            select(
+                HeaterType.model,
+                HeaterType.weight,
+                OrderItem.quantity,
+            )
+            .join(HeaterType, HeaterType.id == OrderItem.heater_type_id)
+            .where(OrderItem.order_id == order_id)
+        )
+        items: list[OrderItemChart] = [
+            OrderItemChart.model_validate(dict(r._mapping)) for r in (await session.execute(item_stmt)).all()
+        ]
+
+        status_new: type[OrderStatus] = aliased(OrderStatus)
+        status_prev: type[OrderStatus] = aliased(OrderStatus)
+
+        hist_stmt: Select[Tuple[datetime, str, str]] = (
+            select(
+                OrderHistory.timestamp,
+                status_new.description.label("new_status"),
+                status_prev.description.label("previous_status"),
+            )
+            .join(status_new, status_new.id == OrderHistory.new_status_id)
+            .outerjoin(status_prev, status_prev.id == OrderHistory.previous_status_id)
+            .where(OrderHistory.order_id == order_id)
+            .order_by(OrderHistory.timestamp.desc())
+        )
+        history: list[OrderHistoryChart] = [
+            OrderHistoryChart.model_validate(dict(r._mapping)) for r in (await session.execute(hist_stmt)).all()
+        ]
+
+        return OrderDetailRead(
+            id=row["id"],
+            created_at=row["created_at"],
+            rent_start=row["rent_start"],
+            rent_end=row["rent_end"],
+            window=f"{row['window_start'].strftime('%H:%M')}–{row['window_end'].strftime('%H:%M')}",
+            phone=row["phone"],
+            client_name=row["client_name"],
+            courier_name=row["courier_name"],
+            location=row["location"],
+            status=row["status"],
+            invoice_status=row["invoice_status"],
+            invoice_issued_at=row["issued_at"],
+            invoice_paid_at=row["paid_at"],
+            contract_file_path=row["contract_file_path"],
+            comment=row["comment"],
+            items=items,
+            history=history,
+        )
+
+    async def update_detail(
+        self,
+        session: AsyncSession,
+        order_id: UUID,
+        data: OrderDetailUpdate,
+    ) -> None:
+        order: Order | None = await session.get(Order, order_id, populate_existing=True)
+        if not order:
+            raise NotFoundError(f"Зказ {order_id} не найдено")
+
+        await self._update_order(session, order, data)
+        await self._update_client(session, order.client_id, data)
+        await self._update_invoice(session, order.id, data)
+
+        await session.commit()
+
+    async def _update_order(self, session: AsyncSession, order: Order, data: OrderDetailUpdate) -> None:
+        if data.rent_start:
+            order.rent_start = data.rent_start
+        if data.rent_end:
+            order.rent_end = data.rent_end
+        if data.window:
+            try:
+                ws, we = map(str.strip, data.window.split("-"))
+                order.window_start = time.fromisoformat(ws)
+                order.window_end = time.fromisoformat(we)
+            except Exception as e:
+                raise UnprocessableEntityError(f"Недопустимый формат времени: {data.window}") from e
+        if data.comment is not None:
+            order.comment = data.comment
+        if data.status:
+            status: OrderStatus | None = await session.scalar(
+                select(OrderStatus).where(OrderStatus.description == data.status)
+            )
+            if not status:
+                raise UnprocessableEntityError(f"Неизвестный статус заказа: {data.status}")
+            order.status_id = status.id
+
+    async def _update_client(  # noqa: C901
+        self,
+        session: AsyncSession,
+        client_id: UUID,
+        data: OrderDetailUpdate,
+    ) -> None:
+        if not (data.phone or data.client_name or data.location):
+            return
+
+        client: Client | None = await session.get(Client, client_id, populate_existing=True)
+        if not client:
+            raise NotFoundError(f"Client {client_id} not found")
+
+        if data.phone:
+            client.phone = data.phone
+        if data.client_name is not None:
+            client.name = data.client_name
+
+        if data.location:
+            parts: list[str] = [p.strip() for p in data.location.split(",", 2)]
+            if len(parts) == 3:  # «город, улица, дом»
+                city, street, building = parts
+            elif len(parts) == 2:  # «город, дом»  → улицы нет
+                city, building = parts
+                street = None
+            else:
+                raise UnprocessableEntityError(f"Недопустимый формат адреса: {data.location}")
+
+            address: Address | None = await session.get(Address, client.address_id, populate_existing=True)
+            if not address:
+                raise NotFoundError(f"Адрес {client.address_id} не найден")
+
+            address.city = city
+            address.street = street
+            address.building = building
+
+    async def _update_invoice(self, session: AsyncSession, order_id: UUID, data: OrderDetailUpdate) -> None:
+        if not (data.invoice_status or data.invoice_issued_at or data.invoice_paid_at):
+            return
+
+        invoice: Invoice | None = await session.scalar(select(Invoice).where(Invoice.order_id == order_id))
+        if not invoice:
+            invoice = Invoice(order_id=order_id)
+            session.add(invoice)
+
+        if data.invoice_status:
+            status: InvoiceStatus | None = await session.scalar(
+                select(InvoiceStatus).where(InvoiceStatus.description == data.invoice_status)
+            )
+            if not status:
+                raise BadRequestError(f"Неизвестный статус счета-фактуры: {data.invoice_status}")
+            invoice.invoice_status_id = status.id
+        if data.invoice_issued_at is not None:
+            invoice.issued_at = data.invoice_issued_at
+        if data.invoice_paid_at is not None:
+            invoice.paid_at = data.invoice_paid_at

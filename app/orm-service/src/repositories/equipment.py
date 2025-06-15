@@ -14,42 +14,34 @@ from src.utils.sqlalchemy_expr import location_expr
 
 
 class EquipmentRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session: AsyncSession = session
-
-    async def add_equipment(self, data: EquipmentCreateAPI) -> Equipment:
-        dup: UUID | None = await self.session.scalar(
+    async def add_equipment(self, session: AsyncSession, data: EquipmentCreateAPI) -> Equipment:
+        dup: UUID | None = await session.scalar(
             select(Equipment.id).where(Equipment.serial_number == data.serial_number)
         )
         if dup:
             raise ConflictError("Серийный номер уже существует")
 
         # 1. HeaterType (создаём при необходимости)
-        heater_type: HeaterType | None = await self.session.scalar(
-            select(HeaterType).where(HeaterType.model == data.model)
-        )
+        heater_type: HeaterType | None = await session.scalar(select(HeaterType).where(HeaterType.model == data.model))
         if not heater_type:
             heater_type = HeaterType(
                 model=data.model,
                 price=data.price,
                 weight=data.weight,
             )
-            self.session.add(heater_type)
-            await self.session.flush()
+            session.add(heater_type)
+            await session.flush()
 
-        # 2. «Available» статус
-        status_id: int | None = await self.session.scalar(
+        status_id: int | None = await session.scalar(
             select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
         )
         if status_id is None:
             raise InternalServerError("Статус 'available' не найден в справочнике EquipmentStatus")
 
-        # 3. Первый склад + его адрес
-        warehouse: Warehouse | None = await self.session.scalar(select(Warehouse).limit(1))
+        warehouse: Warehouse | None = await session.scalar(select(Warehouse).limit(1))
         if warehouse is None:
             raise InternalServerError("Не найдено ни одного склада – база не инициализирована")
 
-        # 4. Сам объект оборудования
         equipment = Equipment(
             heater_type_id=heater_type.id,
             serial_number=data.serial_number,
@@ -57,24 +49,24 @@ class EquipmentRepository:
             warehouse_id=warehouse.id,
             current_address_id=warehouse.address_id,
         )
-        self.session.add(equipment)
-        await self.session.flush()
+        session.add(equipment)
+        await session.flush()
 
         first_maintenance = Maintenance(
             equipment_id=equipment.id,
             date=date.today(),
         )
-        self.session.add(first_maintenance)
+        session.add(first_maintenance)
 
-        await self.session.refresh(equipment)
+        await session.refresh(equipment)
         return equipment
 
-    async def list_all_models(self) -> list[str]:
+    async def list_all_models(self, session: AsyncSession) -> list[str]:
         stmt: Select[Tuple[str]] = select(HeaterType.model).distinct()
-        result: ScalarResult[str] = await self.session.scalars(stmt)
+        result: ScalarResult[str] = await session.scalars(stmt)
         return list(result)
 
-    async def list_models_with_count(self, filter: EquipmentFilter) -> list[EquipmentReadAPI]:
+    async def list_models_with_count(self, session: AsyncSession, filter: EquipmentFilter) -> list[EquipmentReadAPI]:
         stmt: Select[Tuple[str, float, float, int, int]] = (
             select(
                 HeaterType.model,
@@ -91,29 +83,27 @@ class EquipmentRepository:
         if filter.status:
             stmt = stmt.where(EquipmentStatus.code == filter.status)
 
-        result: Result[Tuple[str, float, float, int, int]] = await self.session.execute(stmt)
+        result: Result[Tuple[str, float, float, int, int]] = await session.execute(stmt)
         return [EquipmentReadAPI.model_validate(row._asdict()) for row in result.all()]
 
-    async def delete_equipment(self, equipment_id: UUID) -> None:
-        await self.session.execute(delete(Equipment).where(Equipment.id == equipment_id))
-        await self.session.commit()
+    async def delete_equipment(self, session: AsyncSession, equipment_id: UUID) -> None:
+        await session.execute(delete(Equipment).where(Equipment.id == equipment_id))
 
-    async def decommission_equipment(self, equipment_id: UUID) -> EquipmentChartRead:
+    async def decommission_equipment(self, session: AsyncSession, equipment_id: UUID) -> EquipmentChartRead:
         # Получаем ID статуса "decommissioned"
-        status_id: int | None = await self.session.scalar(
+        status_id: int | None = await session.scalar(
             select(EquipmentStatus.id).where(EquipmentStatus.code == "decommissioned")
         )
         if status_id is None:
             raise InternalServerError("Статус 'decommissioned' не найден")
 
         # Обновляем статус оборудования
-        await self.session.execute(
+        await session.execute(
             update(Equipment).where(Equipment.id == equipment_id).values(equipment_status_id=status_id)
         )
-        await self.session.commit()
 
         # Получаем актуальные данные по оборудованию
-        row: Result[Tuple[UUID, date | None, str, float, float, str, str]] = await self.session.execute(
+        row: Result[Tuple[UUID, date | None, str, float, float, str, str]] = await session.execute(
             select(
                 Equipment.id,
                 Maintenance.date,
@@ -136,12 +126,12 @@ class EquipmentRepository:
 
         return EquipmentChartRead.model_validate(result._asdict())
 
-    async def send_to_service(self, equipment_id: UUID) -> EquipmentChartRead:
+    async def send_to_service(self, session: AsyncSession, equipment_id: UUID) -> EquipmentChartRead:
         # Получаем ID нужных статусов
-        available_id: int | None = await self.session.scalar(
+        available_id: int | None = await session.scalar(
             select(EquipmentStatus.id).where(EquipmentStatus.code == "available")
         )
-        maintenance_id: int | None = await self.session.scalar(
+        maintenance_id: int | None = await session.scalar(
             select(EquipmentStatus.id).where(EquipmentStatus.code == "maintenance")
         )
 
@@ -149,7 +139,7 @@ class EquipmentRepository:
             raise InternalServerError("Не найдены необходимые статусы оборудования")
 
         # Получаем текущий статус оборудования
-        current_status_id: int | None = await self.session.scalar(
+        current_status_id: int | None = await session.scalar(
             select(Equipment.equipment_status_id).where(Equipment.id == equipment_id)
         )
         if current_status_id is None:
@@ -164,20 +154,18 @@ class EquipmentRepository:
             raise ConflictError("Оборудование должно быть в статусе 'available' или 'maintenance'")
 
         # Обновляем статус
-        await self.session.execute(
+        await session.execute(
             update(Equipment).where(Equipment.id == equipment_id).values(equipment_status_id=new_status_id)
         )
 
         # Обновляем дату обслуживания только при возвращении из сервиса
         if new_status_id == available_id:
-            await self.session.execute(
+            await session.execute(
                 update(Maintenance).where(Maintenance.equipment_id == equipment_id).values(date=date.today())
             )
 
-        await self.session.commit()
-
         # Получаем актуальные данные для возврата
-        row: Result[Tuple[UUID, date | None, str, float, float, Any, str]] = await self.session.execute(
+        row: Result[Tuple[UUID, date | None, str, float, float, Any, str]] = await session.execute(
             select(
                 Equipment.id,
                 Maintenance.date,

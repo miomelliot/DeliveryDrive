@@ -85,22 +85,3 @@ class OrderChartRepository:
             )
             for r in rows
         ]
-
-    async def get_unique_descriptions(self, session: AsyncSession) -> list[str]:
-        stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
-        result: Result[Tuple[str]] = await session.execute(stmt)
-        return [row[0] for row in result.all() if row[0]]
-
-    async def get_unique_full_names(self, session: AsyncSession) -> list[str]:
-        stmt: Select[Tuple[str]] = (
-            select(full_name_expr().label("full_name"))
-            .select_from(Order)
-            .join(RouteItem, RouteItem.order_id == Order.id)
-            .join(Route, Route.id == RouteItem.route_id)
-            .join(User, User.id == Route.courier_id)
-            .where((User.first_name.isnot(None)) | (User.last_name.isnot(None)))
-            .order_by("full_name")
-        )
-
-        result: Result[Tuple[str]] = await session.execute(stmt)
-        return [row[0] for row in result.all() if row[0].strip()]

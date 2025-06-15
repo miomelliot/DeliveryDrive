@@ -1,5 +1,5 @@
 # src/repositories/order_detail_read.py
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any, Tuple
 from uuid import UUID
 
@@ -142,13 +142,10 @@ class OrderDetailRepository:
             order.rent_start = data.rent_start
         if data.rent_end is not None:
             order.rent_end = data.rent_end
-        if data.window is not None:
-            try:
-                start_str, end_str = data.window.split("–")
-                order.window_start = datetime.strptime(start_str.strip(), "%H:%M").time()
-                order.window_end = datetime.strptime(end_str.strip(), "%H:%M").time()
-            except Exception as e:
-                raise ValueError(f"Invalid time format: {data.window}") from e
+        if data.window:
+            ws, we = map(str.strip, data.window.split("-"))
+            order.window_start = time.fromisoformat(ws)
+            order.window_end = time.fromisoformat(we)
         if data.comment is not None:
             order.comment = data.comment
         if data.status is not None:
