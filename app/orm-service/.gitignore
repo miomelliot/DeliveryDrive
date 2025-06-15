@@ -5,7 +5,6 @@ __pycache__/
 static/icons/
 # C extensions
 *.so
-
 # Distribution / packaging
 .Python
 build/

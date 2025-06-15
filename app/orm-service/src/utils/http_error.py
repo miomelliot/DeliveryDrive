@@ -30,6 +30,11 @@ class ConflictError(APIException):
     detail = "Конфликт данных"
 
 
+class GoneError(APIException):
+    status_code = 410
+    detail = "Ресурс больше не доступен"
+
+
 class UnprocessableEntityError(APIException):
     status_code = 422
     detail = "Невалидные данные"

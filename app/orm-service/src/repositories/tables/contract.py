@@ -1,16 +1,18 @@
 # src/repositories/tables/contract.py
 import secrets
 from pathlib import Path
+from typing import Tuple
 from uuid import UUID
 
 import aiofiles
 from fastapi import UploadFile
+from sqlalchemy import Result, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Contract
 from src.repositories.tables.base import CRUDRepository
 from src.schemas.contract import ContractCreate, ContractUpdate
-from src.utils.http_error import BadRequestError
+from src.utils.http_error import BadRequestError, NotFoundError
 
 CONTRACT_DIR = Path("/app/static/contracts")
 ALLOWED: set[str] = {".pdf", ".png"}
@@ -46,3 +48,20 @@ class ContractRepository(CRUDRepository[Contract, ContractCreate, ContractUpdate
 
         obj_in = ContractCreate(order_id=order_id, file_path=str(rel_path))
         return await super().create(session, obj_in)
+
+    async def get_by_order(self, session: AsyncSession, order_id: UUID) -> Contract:
+        stmt: Select[Tuple[Contract]] = select(self.model).where(self.model.order_id == order_id)
+        result: Result[Tuple[Contract]] = await session.execute(stmt)
+        instance: Contract | None = result.scalars().first()
+        if not instance:
+            raise NotFoundError("Контракт по заказу не найден")
+        return instance
+
+    async def delete_with_file(self, session: AsyncSession, order_id: UUID) -> None:
+        contract: Contract = await self.get_by_order(session, order_id)
+
+        file_path: Path = Path("/app") / contract.file_path
+        if file_path.exists():
+            file_path.unlink(missing_ok=True)
+
+        await super().delete(session, contract.id)
