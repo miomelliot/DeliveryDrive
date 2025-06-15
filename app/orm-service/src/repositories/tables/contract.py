@@ -15,9 +15,7 @@ from src.schemas.contract import ContractCreate, ContractUpdate
 from src.utils.http_error import BadRequestError, NotFoundError
 
 CONTRACT_DIR = Path("/app/static/contracts")
-# ROOT_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
-# STATIC_DIR: Path = ROOT_DIR / "static"
-# CONTRACT_DIR: Path = STATIC_DIR / "contracts"
+
 ALLOWED: set[str] = {".pdf", ".png"}
 
 
