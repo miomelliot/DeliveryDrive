@@ -13,6 +13,7 @@ dependencies = [
     "aiofiles>=24.1.0",
     "passlib[argon2]>=1.7.4",
     "neo4j>=5.28.1",
+    "ortools>=9.13.4784",
 ]
 
 
