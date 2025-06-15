@@ -2,7 +2,19 @@
 from datetime import date
 from typing import List, Sequence, Tuple
 
-from sqlalchemy import Label, RowMapping, ScalarSelect, Select, Subquery, func, select
+from sqlalchemy import (
+    BinaryExpression,
+    Label,
+    RowMapping,
+    ScalarSelect,
+    Select,
+    Subquery,
+    True_,
+    and_,
+    func,
+    select,
+    true,
+)
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +25,7 @@ from src.db.models import (
     Invoice,
     Order,
     OrderStatus,
+    Role,
     Route,
     RouteItem,
     User,
@@ -125,26 +138,34 @@ class DashboardRepository:
         return [OrderStatusDaily(date=r[0], status_code=r[1], count=r[2]) for r in rows]
 
     async def orders_by_courier(
-        self, session: AsyncSession, start: date | None = None, end: date | None = None
+        self,
+        session: AsyncSession,
+        start: date | None = None,
+        end: date | None = None,
     ) -> List[CourierOrdersCount]:
-        stmt: Select[Tuple[str, int]] = (
-            select(
-                func.concat(User.last_name, " ", User.first_name).label("courier"),
-                func.count(Order.id).label("count"),
-            )
-            .select_from(User)
-            .join(Route, Route.courier_id == User.id)
-            .join(RouteItem, RouteItem.route_id == Route.id)
-            .join(Order, Order.id == RouteItem.order_id)
+        courier_name: Label[str] = func.concat_ws(" ", User.last_name, User.first_name).label("courier")
+
+        date_cond: BinaryExpression[bool] | True_ = (
+            func.date(Route.date).between(start, end) if start and end else true()
         )
 
-        if start and end:
-            stmt = stmt.where(func.date(Route.date).between(start, end))
-
-        stmt = stmt.group_by(User.id).order_by(func.count(Order.id).desc())
+        stmt: Select[Tuple[str, int]] = (
+            select(courier_name, func.coalesce(func.count(Order.id), 0).label("count"))
+            .select_from(User)
+            .where(User.role.has(Role.name == "courier"))
+            .outerjoin(
+                Route,
+                and_(Route.courier_id == User.id, date_cond),
+            )
+            .outerjoin(RouteItem, RouteItem.route_id == Route.id)
+            .outerjoin(Order, Order.id == RouteItem.order_id)
+            .group_by(User.id, User.last_name, User.first_name)
+            .order_by(func.count(Order.id).desc())
+        )
 
         rows: Sequence[Row[Tuple[str, int]]] = (await session.execute(stmt)).all()
-        return [CourierOrdersCount(courier_name=r[0].strip(), count=r[1]) for r in rows]
+
+        return [CourierOrdersCount(courier_name=(r[0] or "").strip(), count=r[1]) for r in rows]
 
     async def equipment_status_counts(self, session: AsyncSession) -> List[EquipmentStatusCount]:
         stmt: Select[Tuple[str, int]] = (

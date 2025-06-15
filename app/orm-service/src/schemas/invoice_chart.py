@@ -37,7 +37,7 @@ class InvoiceChartFilter(BaseModel):
     order_dir: Literal["asc", "desc"] = "asc"
 
     # 🔽 Выпадающий фильтр по имени и описанию статуса
-    status: Literal["Выставлен", "Оплачен", "Не оплачен"] | None = "Выставлен"
+    status: Literal["Выставлен", "Оплачен", "Не оплачен"] | None = None
 
     # 🔽 Фильтрация по диапазону дат
     rent_date_start: date | None = None
