@@ -1,4 +1,5 @@
 # src/repositories/tables/client.py
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,9 +27,26 @@ class ClientRepository(CRUDRepository[Client, ClientCreate, ClientUpdate]):
 
         return await super().create(session, obj_in)
 
-    async def update_raw(self, session: AsyncSession, id: UUID, raw_data: OrderDetailUpdate) -> Client:
-        location = AddressUpdateAPI(location=raw_data.location)
-        address: Address = await AddressRepository().update_by_id_raw(session, id, location)
-        obj_in = ClientUpdate(phone=raw_data.phone, name=raw_data.client_name, address_id=address.id)
+    async def update_raw(
+        self,
+        session: AsyncSession,
+        client_id: UUID,
+        raw: OrderDetailUpdate,
+    ) -> Client:
+        kwargs: dict[str, Any] = {}
 
-        return await super().update_by_id(session, id, obj_in)
+        if raw.location is not None:
+            addr_update = AddressUpdateAPI(location=raw.location)
+            address: Address = await AddressRepository().update_by_id_raw(session, client_id, addr_update)
+            kwargs["address_id"] = address.id
+
+        if raw.phone is not None:
+            kwargs["phone"] = raw.phone
+        if raw.client_name is not None:
+            kwargs["name"] = raw.client_name
+
+        if not kwargs:
+            return await self.get(session, client_id)
+
+        obj_in = ClientUpdate(**kwargs)
+        return await super().update_by_id(session, client_id, obj_in)
