@@ -43,8 +43,11 @@ class EquipmentChartRepository:
                 | func.cast(HeaterType.weight, String).like(like)
                 | func.cast(HeaterType.price, String).like(like)
                 | func.lower(location_expr()).like(like)
-                | func.lower(EquipmentStatus.description).like(like)
             )
+
+        # 📋 Фильтрация по статусу
+        if filters.status:
+            stmt = stmt.where(EquipmentStatus.description == filters.status)
 
         # 📅 Диапазон дат обслуживания
         if filters.date_start:
