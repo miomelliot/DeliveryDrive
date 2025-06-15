@@ -40,7 +40,7 @@ class InvoiceRepository(CRUDRepository[Invoice, InvoiceCreate, InvoiceUpdate]):
 
         invoice_status_id = None
         if raw_data.invoice_status:
-            invoice_status_id = await InvoiceStatusRepository().get_id(session, raw_data.invoice_status)
+            invoice_status_id = await InvoiceStatusRepository().get_description_id(session, raw_data.invoice_status)
         obj_in = InvoiceUpdate(
             invoice_status_id=invoice_status_id,
             issued_at=raw_data.invoice_issued_at,
