@@ -27,14 +27,6 @@ class WarehouseSummaryResponse(BaseModel):
     maintenance: int
 
 
-class HeaterStock(BaseModel):
-    heater_type_id: int
+class EquipmentStockResponse(BaseModel):
     model: str
     quantity: int
-
-
-class EquipmentStockResponse(BaseModel):
-    items: list[HeaterStock]
-    page: int
-    size: int
-    total_pages: int

@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api import (
     contract,
+    dashboard,
     equipment,
     equipment_chart,
     invoice_chart,
@@ -50,6 +51,8 @@ app.include_router(user.router)
 app.include_router(order.router)
 app.include_router(equipment.router)
 app.include_router(contract.router)
+# dashboard
+app.include_router(dashboard.router)
 # chart
 app.include_router(user_chart.router)
 app.include_router(order_chart.router)

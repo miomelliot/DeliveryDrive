@@ -95,6 +95,12 @@ class HeaterType(Base):
     price: Mapped[float] = mapped_column(Float)
     weight: Mapped[float] = mapped_column(Float)
 
+    equipment: Mapped[list["Equipment"]] = relationship(
+        back_populates="heater_type",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
 
 class TransportType(Base):
     __tablename__ = "transport_type"
@@ -227,7 +233,7 @@ class Equipment(Base):
     warehouse_id: Mapped[UUID] = mapped_column(ForeignKey(Warehouse.id, ondelete="SET NULL"))
     current_address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="SET NULL"))
 
-    heater_type: Mapped[HeaterType] = relationship()
+    heater_type: Mapped[HeaterType] = relationship(back_populates="equipment")
     status: Mapped[EquipmentStatus] = relationship()
     warehouse: Mapped[Warehouse] = relationship()
     current_address: Mapped[Address] = relationship()
