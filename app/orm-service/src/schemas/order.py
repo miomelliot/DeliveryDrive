@@ -70,3 +70,7 @@ class OrderDetailUpdate(BaseModel):
     comment: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class OrderStart(BaseModel):
+    id: UUID
