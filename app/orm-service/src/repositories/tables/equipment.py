@@ -28,7 +28,7 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
                 weight=raw_data.weight,
             ),
         )
-        equipment_status_id: int = await EquipmentStatusRepository().get_id(session, "available")
+        equipment_status_id: int = await EquipmentStatusRepository().get_code_id(session, "available")
         warehouse: Sequence[Warehouse] = await WarehouseRepository().list(session)
         obj_in = EquipmentCreate(
             heater_type_id=heater_type.id,
@@ -49,11 +49,10 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
         new_status_code: str,
         limit: int,
         model: str,
-        client_address_id: UUID | None = None,
     ) -> list[Equipment]:
         status_repo = EquipmentStatusRepository()
-        old_status_id: int = await status_repo.get_id(session, old_status_code)
-        new_status_id: int = await status_repo.get_id(session, new_status_code)
+        old_status_id: int = await status_repo.get_code_id(session, old_status_code)
+        new_status_id: int = await status_repo.get_code_id(session, new_status_code)
 
         stmt: Select[Tuple[Equipment]] = (
             select(Equipment)
@@ -70,18 +69,10 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
         for eq in equipment_list:
             eq.equipment_status_id = new_status_id
 
-            if new_status_code == "rented":
-                if not client_address_id:
-                    raise ConflictError("Не указан адрес клиента для назначения оборудования")
-                eq.current_address_id = client_address_id
-
-            elif new_status_code == "available":
-                if not eq.warehouse_id:
-                    raise ConflictError(f"У оборудования {eq.serial_number} не задан склад")
-                warehouse: Warehouse | None = await session.get(Warehouse, eq.warehouse_id)
-                if not warehouse:
-                    raise ConflictError(f"Склад с id={eq.warehouse_id} не найден")
-                eq.current_address_id = warehouse.address_id
-
         await session.flush()
         return list(equipment_list)
+
+    async def update_status(self, session: AsyncSession, id: UUID | int, status: str) -> Equipment:
+        equipment_status_id: int = await EquipmentStatusRepository().get_code_id(session, status)
+        obj_in = EquipmentUpdate(equipment_status_id=equipment_status_id)
+        return await super().update_by_id(session, id, obj_in)

@@ -20,7 +20,7 @@ class InvoiceRepository(CRUDRepository[Invoice, InvoiceCreate, InvoiceUpdate]):
         super().__init__(Invoice)
 
     async def create_from_order(self, session: AsyncSession, order_id: UUID) -> Invoice:
-        invoice_status_id: int = await InvoiceStatusRepository().get_id(session, "not_paid")
+        invoice_status_id: int = await InvoiceStatusRepository().get_code_id(session, "not_paid")
         amount: Decimal = await OrderItemRepository().get_total_amount(session, order_id)
 
         obj_in = InvoiceCreate(

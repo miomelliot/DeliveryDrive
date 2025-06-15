@@ -16,8 +16,17 @@ class OrderItemRepository(CRUDRepository[OrderItem, OrderItemCreate, OrderItemUp
     def __init__(self) -> None:
         super().__init__(OrderItem)
 
-    async def get_items(self, session: AsyncSession, order_id: UUID) -> list[OrderItemDetailed]:
-        rented_status_id: int = await EquipmentStatusRepository().get_id(session, "rented")
+    async def get_item_from_order_id(self, session: AsyncSession, order_id: UUID | int) -> list[Equipment]:
+        stmt: Select[Tuple[Equipment]] = (
+            select(Equipment)
+            .join(OrderItem, Equipment.heater_type_id == OrderItem.heater_type_id)
+            .where(OrderItem.order_id == order_id)
+        )
+        res: Result[Tuple[Equipment]] = await session.execute(stmt)
+        return list(res.scalars().all())
+
+    async def get_items_rented(self, session: AsyncSession, order_id: UUID) -> list[OrderItemDetailed]:
+        rented_status_id: int = await EquipmentStatusRepository().get_code_id(session, "rented")
 
         stmt: Select[Tuple[str, str, float, float, int]] = (
             select(

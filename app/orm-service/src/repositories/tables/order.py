@@ -18,6 +18,7 @@ from src.db.models import (
     Address,
     Client,
     Contract,
+    Equipment,
     HeaterType,
     Invoice,
     InvoiceStatus,
@@ -41,7 +42,7 @@ from src.schemas.order import EquipmentList, OrderCreate, OrderCreateAPI, OrderU
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate, OrderHistoryChart, OrderItemChart
 from src.schemas.order_history import OrderHistoryCreate
 from src.schemas.order_item import OrderItemCreate
-from src.utils.http_error import BadRequestError, NotFoundError, UnprocessableEntityError
+from src.utils.http_error import BadRequestError, UnprocessableEntityError
 from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 # IMPORT_DIR = Path("/app/static/imports")
@@ -57,7 +58,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
 
     async def create_raw(self, session: AsyncSession, raw_data: OrderCreateAPI) -> Order:
         client: Client = await ClientRepository().create_raw(session, raw_data)
-        status_id: int = await OrderStatusRepository().get_id(session, "new")
+        status_id: int = await OrderStatusRepository().get_code_id(session, "new")
 
         obj_in = OrderCreate(
             client_id=client.id,
@@ -80,7 +81,6 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
                 new_status_code="rented",
                 limit=eq.quantity,
                 model=heater_type.model,
-                client_address_id=client.address_id,
             )
 
             await OrderItemRepository().create(
@@ -115,7 +115,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         if new_status_code is None:
             return order.status_id
 
-        new_status_id: int = await OrderStatusRepository().get_id(session, new_status_code)
+        new_status_id: int = await OrderStatusRepository().get_description_id(session, new_status_code)
 
         if order.status_id == new_status_id:
             return order.status_id
@@ -364,8 +364,8 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         )
 
     async def delete(self, session: AsyncSession, id: UUID | int) -> None:
-        order: Order | None = await session.get(Order, id)
-        if not order:
-            raise NotFoundError("Заказ не найден")
+        equipment_list: list[Equipment] = await OrderItemRepository().get_item_from_order_id(session, id)
+        for equipment in equipment_list:
+            await EquipmentRepository().update_status(session, equipment.id, "available")
 
         return await super().delete(session, id)

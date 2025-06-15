@@ -18,7 +18,7 @@ class BaseStatusRepository[ModelT: HasIdAndCode](CRUDRepository[ModelT, BaseLook
     def __init__(self, model: type[ModelT]) -> None:
         super().__init__(model)
 
-    async def get_id(self, session: AsyncSession, code: str) -> int:
+    async def get_code_id(self, session: AsyncSession, code: str) -> int:
         stmt: Select[Tuple[int]] = select(self.model.id).where(self.model.code == code)
         res: Result[Tuple[int]] = await session.execute(stmt)
         instance: int | None = res.scalars().first()
