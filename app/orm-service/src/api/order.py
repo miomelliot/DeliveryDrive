@@ -51,7 +51,6 @@ async def delete_order(
     return {"detail": "Заказ удалён"}
 
 
-# ────────────────────────────── Bulk Import ──────────────────────────────
 @router.post(
     "/import",
     status_code=status.HTTP_201_CREATED,

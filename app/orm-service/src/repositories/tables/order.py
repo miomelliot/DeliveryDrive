@@ -41,7 +41,7 @@ from src.schemas.order import EquipmentList, OrderCreate, OrderCreateAPI, OrderU
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate, OrderHistoryChart, OrderItemChart
 from src.schemas.order_history import OrderHistoryCreate
 from src.schemas.order_item import OrderItemCreate
-from src.utils.http_error import BadRequestError, NotFoundError, UnprocessableEntityError
+from src.utils.http_error import BadRequestError, UnprocessableEntityError
 from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 # IMPORT_DIR = Path("/app/static/imports")
@@ -108,13 +108,16 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         self,
         session: AsyncSession,
         order_id: UUID,
-        new_status_code: str,
-    ) -> Order:
+        new_status_code: str | None,
+    ) -> int:
         order: Order = await self.get(session, order_id)
+        if new_status_code is None:
+            return order.status_id
+
         new_status_id: int = await OrderStatusRepository().get_id(session, new_status_code)
 
         if order.status_id == new_status_id:
-            return order
+            return order.status_id
 
         prev_status_id: int = order.status_id
         order.status_id = new_status_id
@@ -130,7 +133,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
                 user_id=session.info.get("user_id"),
             ),
         )
-        return order
+        return order.status_id
 
     async def import_file(self, session: AsyncSession, upload: UploadFile) -> list[Order]:
         ext, filename = self._validate_upload(upload)
@@ -157,6 +160,36 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
                 logger.debug("[Импорт заказов] временный файл удалён: {}", file_path)
             except Exception as exc:
                 logger.warning("[Импорт заказов] не удалось удалить {} — {}", file_path, exc)
+
+    async def update_detail(
+        self,
+        session: AsyncSession,
+        order_id: UUID,
+        data: OrderDetailUpdate,
+    ) -> Order:
+        order: Order = await self.get(session, order_id)
+
+        await ClientRepository().update_raw(session, order.client_id, data)
+        await InvoiceRepository().update_raw(session, order.id, data)
+        status_id: int = await self.update_status(session, order.id, data.status)
+        if data.window:
+            try:
+                ws, we = map(str.strip, data.window.split("-"))
+                order.window_start = time.fromisoformat(ws)
+                order.window_end = time.fromisoformat(we)
+            except Exception as e:
+                raise UnprocessableEntityError(f"Недопустимый формат времени: {data.window}") from e
+
+        obj_in = OrderUpdate(
+            rent_start=order.rent_start,
+            rent_end=order.rent_end,
+            comment=order.comment,
+            status_id=status_id,
+            window_start=order.window_start,
+            window_end=order.window_end,
+        )
+
+        return await super().update_by_id(session, order_id, obj_in)
 
     @staticmethod
     def _clean_str(val: object) -> str | None:
@@ -328,98 +361,3 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
             items=items,
             history=history,
         )
-
-    async def update_detail(
-        self,
-        session: AsyncSession,
-        order_id: UUID,
-        data: OrderDetailUpdate,
-    ) -> None:
-        order: Order | None = await session.get(Order, order_id, populate_existing=True)
-        if not order:
-            raise NotFoundError(f"Зказ {order_id} не найдено")
-
-        await self._update_order(session, order, data)
-        await self._update_client(session, order.client_id, data)
-        await self._update_invoice(session, order.id, data)
-
-        await session.commit()
-
-    async def _update_order(self, session: AsyncSession, order: Order, data: OrderDetailUpdate) -> None:
-        if data.rent_start:
-            order.rent_start = data.rent_start
-        if data.rent_end:
-            order.rent_end = data.rent_end
-        if data.window:
-            try:
-                ws, we = map(str.strip, data.window.split("-"))
-                order.window_start = time.fromisoformat(ws)
-                order.window_end = time.fromisoformat(we)
-            except Exception as e:
-                raise UnprocessableEntityError(f"Недопустимый формат времени: {data.window}") from e
-        if data.comment is not None:
-            order.comment = data.comment
-        if data.status:
-            status: OrderStatus | None = await session.scalar(
-                select(OrderStatus).where(OrderStatus.description == data.status)
-            )
-            if not status:
-                raise UnprocessableEntityError(f"Неизвестный статус заказа: {data.status}")
-            order.status_id = status.id
-
-    async def _update_client(  # noqa: C901
-        self,
-        session: AsyncSession,
-        client_id: UUID,
-        data: OrderDetailUpdate,
-    ) -> None:
-        if not (data.phone or data.client_name or data.location):
-            return
-
-        client: Client | None = await session.get(Client, client_id, populate_existing=True)
-        if not client:
-            raise NotFoundError(f"Client {client_id} not found")
-
-        if data.phone:
-            client.phone = data.phone
-        if data.client_name is not None:
-            client.name = data.client_name
-
-        if data.location:
-            parts: list[str] = [p.strip() for p in data.location.split(",", 2)]
-            if len(parts) == 3:  # «город, улица, дом»
-                city, street, building = parts
-            elif len(parts) == 2:  # «город, дом»  → улицы нет
-                city, building = parts
-                street = None
-            else:
-                raise UnprocessableEntityError(f"Недопустимый формат адреса: {data.location}")
-
-            address: Address | None = await session.get(Address, client.address_id, populate_existing=True)
-            if not address:
-                raise NotFoundError(f"Адрес {client.address_id} не найден")
-
-            address.city = city
-            address.street = street
-            address.building = building
-
-    async def _update_invoice(self, session: AsyncSession, order_id: UUID, data: OrderDetailUpdate) -> None:
-        if not (data.invoice_status or data.invoice_issued_at or data.invoice_paid_at):
-            return
-
-        invoice: Invoice | None = await session.scalar(select(Invoice).where(Invoice.order_id == order_id))
-        if not invoice:
-            invoice = Invoice(order_id=order_id)
-            session.add(invoice)
-
-        if data.invoice_status:
-            status: InvoiceStatus | None = await session.scalar(
-                select(InvoiceStatus).where(InvoiceStatus.description == data.invoice_status)
-            )
-            if not status:
-                raise BadRequestError(f"Неизвестный статус счета-фактуры: {data.invoice_status}")
-            invoice.invoice_status_id = status.id
-        if data.invoice_issued_at is not None:
-            invoice.issued_at = data.invoice_issued_at
-        if data.invoice_paid_at is not None:
-            invoice.paid_at = data.invoice_paid_at
