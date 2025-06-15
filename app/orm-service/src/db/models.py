@@ -187,6 +187,7 @@ class Order(Base):
         passive_deletes=True,
     )
     contract: Mapped["Contract"] = relationship(
+        back_populates="order",
         cascade="all, delete-orphan",
         passive_deletes=True,
         uselist=False,
@@ -203,7 +204,7 @@ class Contract(Base):
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"), unique=True)
     file_path: Mapped[str] = mapped_column(Text)
 
-    order: Mapped[Order] = relationship()
+    order: Mapped[Order] = relationship(back_populates="contract")
 
 
 # ─────────────── Equipment ───────────────
