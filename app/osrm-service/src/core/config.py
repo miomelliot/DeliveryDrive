@@ -2,7 +2,7 @@
 import os
 from functools import lru_cache
 
-from pydantic import Field, PostgresDsn, SecretStr
+from pydantic import Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     debug: bool = Field(False, alias="DEBUG")
 
     # --- Auth/JWT -------------------------------------------------
-    jwt_secret: SecretStr = Field(default=SecretStr("super-secret-change-me"), alias="JWT_SECRET")
+    jwt_secret: str = Field(default=str("super-secret-change-me"), alias="JWT_SECRET")
     jwt_alg: str = Field("HS256", alias="JWT_ALG")
+    access_token_ttl: int = Field(60 * 24 * 30, alias="ACCESS_TOKEN_TTL_MIN")  # 30 дней
 
     # ── готовый DSN для SQLAlchemy ─────────────────────────────────────────────
     @property
@@ -31,7 +32,7 @@ class Settings(BaseSettings):
                 password=self.password,
                 host=self.host,
                 port=self.port,
-                path=f"/{self.db}",
+                path=self.db,
             )
         )
 
