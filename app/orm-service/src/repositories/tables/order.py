@@ -1,4 +1,5 @@
 # src/repositories/tables/order.py
+import math
 import secrets
 from datetime import date, time
 from pathlib import Path
@@ -7,6 +8,7 @@ from uuid import UUID
 import aiofiles
 import pandas as pd
 from fastapi import UploadFile
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Client, HeaterType, Order
@@ -23,8 +25,11 @@ from src.schemas.order_history import OrderHistoryCreate
 from src.schemas.order_item import OrderItemCreate
 from src.utils.http_error import BadRequestError
 
-IMPORT_DIR = Path("/app/static/imports")
+# IMPORT_DIR = Path("/app/static/imports")
 ALLOWED_EXT: set[str] = {".xlsx", ".csv", ".json"}
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent  # указывает на корень проекта
+STATIC_DIR = ROOT_DIR / "static"
+IMPORT_DIR = STATIC_DIR / "imports"
 
 
 class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
@@ -111,18 +116,40 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
     async def import_file(self, session: AsyncSession, upload: UploadFile) -> list[Order]:
         ext, filename = self._validate_upload(upload)
         file_path: Path = await self._save_upload(upload, filename)
-        df: pd.DataFrame = self._load_dataframe(file_path, ext)
-        self._ensure_columns(df, {"phone", "address", "rent_period", "heater_model", "qty"})
 
-        orders_api: list[OrderCreateAPI] = [self._row_to_api(row) for _, row in df.iterrows()]
-        created: list[Order] = []
+        try:
+            df: pd.DataFrame = self._load_dataframe(file_path, ext)
+            self._ensure_columns(df, {"phone", "address", "rent_period", "heater_model", "qty"})
 
-        async with session.begin():
-            for order_api in orders_api:
-                created.append(await self.create_raw(session, order_api))
-        return created
+            created: list[Order] = []
+
+            for i, (_, row) in enumerate(df.iterrows(), start=1):
+                try:
+                    api: OrderCreateAPI = self._row_to_api(row)
+                    created.append(await self.create_raw(session, api))
+                except Exception as exc:
+                    logger.warning("[Импорт заказов] строка {} — {}", i, exc)
+
+            return created
+
+        finally:
+            try:
+                file_path.unlink(missing_ok=True)
+                logger.debug("[Импорт заказов] временный файл удалён: {}", file_path)
+            except Exception as exc:
+                logger.warning("[Импорт заказов] не удалось удалить {} — {}", file_path, exc)
 
     # ─────────────────────────── helpers ───────────────────────────
+    @staticmethod
+    def _clean_str(val: object) -> str | None:
+        """Возвращает None для NaN/None/пустых строк, иначе str(val)."""
+        if val is None:
+            return None
+        if isinstance(val, float) and pd.isna(val):  # ловим NaN
+            return None
+        val_str: str = str(val).strip()
+        return val_str or None
+
     @staticmethod
     def _validate_upload(upload: UploadFile) -> tuple[str, str]:
         if not upload.filename:
@@ -130,7 +157,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         ext: str = Path(upload.filename).suffix.lower()
         if ext not in ALLOWED_EXT:
             raise BadRequestError("Разрешены .xlsx, .csv, .json")
-        return ext, upload.filename  # type: ignore[return-value]
+        return ext, upload.filename
 
     @staticmethod
     async def _save_upload(upload: UploadFile, filename: str) -> Path:
@@ -164,39 +191,35 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         return date.fromisoformat(start_str), date.fromisoformat(end_str)
 
     @staticmethod
-    def _parse_window(window: str | None) -> tuple[time | None, time | None]:
-        if not window:
-            return None, None
+    def _parse_window(value: object) -> tuple[time, time]:
+        """Возвращает (start, end) либо дефолты 09-18."""
+        if value is None or (isinstance(value, float) and math.isnan(value)) or value == "":
+            return time(9), time(18)
+
+        if isinstance(value, time):  # ячейка Excel = время
+            return value, time(18)
+
         try:
-            start_s, end_s = window.split("-")
-            return time.fromisoformat(start_s), time.fromisoformat(end_s)
+            ws, we = str(value).strip().split("-")
+            return time.fromisoformat(ws), time.fromisoformat(we)
         except ValueError as exc:
-            raise BadRequestError(f"delivery_window неверный формат: {window}") from exc
+            raise BadRequestError(f"delivery_window неверный формат: {value}") from exc
 
+    # ───── row → OrderCreateAPI ─────
     def _row_to_api(self, row: pd.Series) -> OrderCreateAPI:
-        phone = "".join(filter(str.isdigit, str(row["phone"])))
+        phone: str = "".join(filter(str.isdigit, str(row["phone"])))
         rent_start, rent_end = self._parse_dates(str(row["rent_period"]))
-
-        window = str(row.get("delivery_window") or "")
-        if window:
-            try:
-                ws_str, we_str = window.split("-")
-                window_start: time = time.fromisoformat(ws_str)
-                window_end: time = time.fromisoformat(we_str)
-            except ValueError as exc:
-                raise BadRequestError(f"delivery_window неверный формат: {window}") from exc
-        else:
-            window_start, window_end = time(9), time(18)
+        window_start, window_end = self._parse_window(row.get("delivery_window"))
 
         return OrderCreateAPI(
             phone=phone,
-            name=row.get("name") or None,
+            name=self._clean_str(row.get("name")),
             location=str(row["address"]).strip(),
             window_start=window_start,
             window_end=window_end,
             rent_start=rent_start,
             rent_end=rent_end,
-            comment=row.get("comment") or None,
+            comment=self._clean_str(row.get("comment")),
             equipment=[
                 EquipmentList(
                     model=str(row["heater_model"]).strip(),

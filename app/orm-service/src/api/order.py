@@ -62,10 +62,6 @@ async def import_orders(
     file: UploadFile = File(..., description="orders_import.xlsx | .csv | .json"),
     session: AsyncSession = Depends(get_session_with_user),
 ) -> list[dict[str, Any]]:
-    """
-    Загружает файл, создаёт заказы пакетно.
-    Возвращает список созданных заказов с их UUID.
-    """
     created: list[Order] = await OrderRepository().import_file(session, file)
     return [{"id": str(order.id), "client": order.client_id} for order in created]
 

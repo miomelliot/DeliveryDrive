@@ -30,7 +30,7 @@ class HeaterTypeRepository(CRUDRepository[HeaterType, HeaterTypeCreate, HeaterTy
         instance: HeaterType | None = res.scalars().first()
 
         if instance is None:
-            raise ConflictError()
+            raise ConflictError("Оборудование не найдено")
 
         return instance
 
