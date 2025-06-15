@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class InvoiceChartRead(BaseModel):
-    # Invoice
+    # Order
     id: UUID
     # Order
     rent_start: date

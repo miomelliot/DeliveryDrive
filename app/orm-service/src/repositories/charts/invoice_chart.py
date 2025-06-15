@@ -33,7 +33,7 @@ class InvoiceChartRepository:
 
         stmt: Select[Tuple[UUID, date, str, int, float, Decimal, str]] = (
             select(
-                Invoice.id,
+                Order.id,
                 Order.rent_start,
                 Client.phone,
                 days_expr,
