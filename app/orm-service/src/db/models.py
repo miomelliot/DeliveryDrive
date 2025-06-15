@@ -124,14 +124,17 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     transports: Mapped[list["Transport"]] = relationship(
+        back_populates="courier",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
     schedules: Mapped[list["CourierSchedule"]] = relationship(
+        back_populates="courier",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
     routes: Mapped[list["Route"]] = relationship(
+        back_populates="courier",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -183,6 +186,7 @@ class Order(Base):
     status: Mapped[OrderStatus] = relationship()
 
     items: Mapped[list["OrderItem"]] = relationship(
+        back_populates="order",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -193,6 +197,12 @@ class Order(Base):
         uselist=False,
     )
     invoices: Mapped[list["Invoice"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    route_items: Mapped[list["RouteItem"]] = relationship(
+        back_populates="order",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -222,6 +232,7 @@ class Equipment(Base):
     warehouse: Mapped[Warehouse] = relationship()
     current_address: Mapped[Address] = relationship()
     maintenance: Mapped[list["Maintenance"]] = relationship(
+        back_populates="equipment",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -233,6 +244,8 @@ class Maintenance(Base):
     equipment_id: Mapped[UUID] = mapped_column(ForeignKey(Equipment.id, ondelete="CASCADE"))
     date: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
 
+    equipment: Mapped[Equipment] = relationship(back_populates="maintenance")
+
 
 # ───────────── OrderItem ─────────────
 class OrderItem(Base):
@@ -241,6 +254,9 @@ class OrderItem(Base):
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"))
     heater_type_id: Mapped[int] = mapped_column(ForeignKey(HeaterType.id))
     quantity: Mapped[int] = mapped_column(Integer)
+
+    order: Mapped[Order] = relationship(back_populates="items")
+    heater_type: Mapped[HeaterType] = relationship()
 
 
 # ─────────────── Logistics ───────────────
@@ -252,7 +268,9 @@ class Route(Base):
     planned_start: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
 
+    courier: Mapped[User] = relationship(back_populates="routes")
     items: Mapped[list["RouteItem"]] = relationship(
+        back_populates="route",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
@@ -265,6 +283,9 @@ class RouteItem(Base):
     route_id: Mapped[UUID] = mapped_column(ForeignKey(Route.id, ondelete="CASCADE"))
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="SET NULL"))
     sequence: Mapped[int] = mapped_column(Integer)
+
+    route: Mapped[Route] = relationship(back_populates="items")
+    order: Mapped[Order] = relationship(back_populates="route_items")
 
 
 class Tracking(Base):
@@ -281,6 +302,9 @@ class Transport(Base):
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     transport_type_id: Mapped[int] = mapped_column(ForeignKey(TransportType.id))
 
+    courier: Mapped[User] = relationship(back_populates="transports")
+    transport_type: Mapped[TransportType] = relationship()
+
 
 # ─────────────── Finance ───────────────
 class Invoice(Base):
@@ -291,6 +315,9 @@ class Invoice(Base):
     invoice_status_id: Mapped[int] = mapped_column(ForeignKey(InvoiceStatus.id))
     issued_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
     paid_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
+
+    order: Mapped[Order] = relationship(back_populates="invoices")
+    status: Mapped[InvoiceStatus] = relationship()
 
 
 # ─────────── History / Audit ───────────
@@ -313,6 +340,8 @@ class CourierSchedule(Base):
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     start_time: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
     end_time: Mapped[dt_time] = mapped_column(Time, default=time(18, 0))
+
+    courier: Mapped[User] = relationship(back_populates="schedules")
 
 
 class AuditLog(Base):
