@@ -139,7 +139,6 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
             except Exception as exc:
                 logger.warning("[Импорт заказов] не удалось удалить {} — {}", file_path, exc)
 
-    # ─────────────────────────── helpers ───────────────────────────
     @staticmethod
     def _clean_str(val: object) -> str | None:
         """Возвращает None для NaN/None/пустых строк, иначе str(val)."""
@@ -205,7 +204,6 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         except ValueError as exc:
             raise BadRequestError(f"delivery_window неверный формат: {value}") from exc
 
-    # ───── row → OrderCreateAPI ─────
     def _row_to_api(self, row: pd.Series) -> OrderCreateAPI:
         phone: str = "".join(filter(str.isdigit, str(row["phone"])))
         rent_start, rent_end = self._parse_dates(str(row["rent_period"]))

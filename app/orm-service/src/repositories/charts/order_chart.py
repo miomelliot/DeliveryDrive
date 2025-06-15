@@ -14,10 +14,7 @@ from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 
 class OrderChartRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session: AsyncSession = session
-
-    async def get_chart(self, filters: OrderChartFilter) -> list[OrderChartRead]:
+    async def get_chart(self, session: AsyncSession, filters: OrderChartFilter) -> list[OrderChartRead]:
         stmt: Select[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]] = (
             select(
                 Order.id,
@@ -43,10 +40,7 @@ class OrderChartRepository:
             like: str = f"%{filters.search.lower()}%"
             full_name: Function[Any] = func.lower(full_name_expr())
             stmt = stmt.where(
-                func.lower(Client.phone).like(like)
-                | func.lower(OrderStatus.description).like(like)
-                | func.lower(location_expr()).like(like)
-                | full_name.like(like)
+                func.lower(Client.phone).like(like) | func.lower(location_expr()).like(like) | full_name.like(like)
             )
 
         if filters.status:
@@ -74,9 +68,7 @@ class OrderChartRepository:
         stmt = stmt.order_by(col.desc() if filters.order_dir == "desc" else col.asc())
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        result: Result[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]] = await self.session.execute(
-            stmt
-        )
+        result: Result[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]] = await session.execute(stmt)
         rows: Sequence[Row[Tuple[UUID, datetime, date, date, time, time, str, str, str, str]]] = result.fetchall()
 
         return [
@@ -94,12 +86,12 @@ class OrderChartRepository:
             for r in rows
         ]
 
-    async def get_unique_descriptions(self) -> list[str]:
+    async def get_unique_descriptions(self, session: AsyncSession) -> list[str]:
         stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
-        result: Result[Tuple[str]] = await self.session.execute(stmt)
+        result: Result[Tuple[str]] = await session.execute(stmt)
         return [row[0] for row in result.all() if row[0]]
 
-    async def get_unique_full_names(self) -> list[str]:
+    async def get_unique_full_names(self, session: AsyncSession) -> list[str]:
         stmt: Select[Tuple[str]] = (
             select(full_name_expr().label("full_name"))
             .select_from(Order)
@@ -110,5 +102,5 @@ class OrderChartRepository:
             .order_by("full_name")
         )
 
-        result: Result[Tuple[str]] = await self.session.execute(stmt)
+        result: Result[Tuple[str]] = await session.execute(stmt)
         return [row[0] for row in result.all() if row[0].strip()]

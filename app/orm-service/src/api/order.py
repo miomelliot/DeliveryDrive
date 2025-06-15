@@ -67,15 +67,15 @@ async def import_orders(
 
 
 # ────────────────────────────── Lookup helpers ──────────────────────────────
-@router.get("/status", response_model=list[str])
+@router.get("/status", status_code=status.HTTP_201_CREATED, response_model=list[str])
 async def get_order_status(
     session: AsyncSession = Depends(get_session_with_user),
 ) -> list[str]:
-    return await OrderChartRepository(session).get_unique_descriptions()
+    return await OrderChartRepository().get_unique_descriptions(session)
 
 
 @router.get("/courier-name", response_model=list[str])
 async def get_courier_full_names(
     session: AsyncSession = Depends(get_session_with_user),
 ) -> list[str]:
-    return await OrderChartRepository(session).get_unique_full_names()
+    return await OrderChartRepository().get_unique_full_names(session)
