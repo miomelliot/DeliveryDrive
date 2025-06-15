@@ -1,6 +1,3 @@
-
-
-
 app = FastAPI(title="orm-service")
 
 # CORS middleware

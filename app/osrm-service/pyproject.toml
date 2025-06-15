@@ -12,6 +12,7 @@ dependencies = [
     "python-jose>=3.4.0",
     "aiofiles>=24.1.0",
     "passlib[argon2]>=1.7.4",
+    "neo4j>=5.28.1",
 ]
 
 
