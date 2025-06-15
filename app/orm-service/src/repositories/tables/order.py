@@ -41,7 +41,7 @@ from src.schemas.order import EquipmentList, OrderCreate, OrderCreateAPI, OrderU
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate, OrderHistoryChart, OrderItemChart
 from src.schemas.order_history import OrderHistoryCreate
 from src.schemas.order_item import OrderItemCreate
-from src.utils.http_error import BadRequestError, UnprocessableEntityError
+from src.utils.http_error import BadRequestError, NotFoundError, UnprocessableEntityError
 from src.utils.sqlalchemy_expr import full_name_expr, location_expr
 
 # IMPORT_DIR = Path("/app/static/imports")
@@ -80,6 +80,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
                 new_status_code="rented",
                 limit=eq.quantity,
                 model=heater_type.model,
+                client_address_id=client.address_id,
             )
 
             await OrderItemRepository().create(
@@ -361,3 +362,10 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
             items=items,
             history=history,
         )
+
+    async def delete(self, session: AsyncSession, id: UUID | int) -> None:
+        order: Order | None = await session.get(Order, id)
+        if not order:
+            raise NotFoundError("Заказ не найден")
+
+        return await super().delete(session, id)

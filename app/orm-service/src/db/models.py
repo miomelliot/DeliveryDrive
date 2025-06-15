@@ -260,6 +260,7 @@ class Equipment(Base):
     status: Mapped[EquipmentStatus] = relationship(back_populates="equipment")
     warehouse: Mapped[Warehouse] = relationship()
     current_address: Mapped[Address] = relationship()
+    
     maintenance: Mapped[list["Maintenance"]] = relationship(
         back_populates="equipment",
         cascade="all, delete-orphan",

@@ -14,7 +14,10 @@ from src.repositories.tables.base import CRUDRepository
 from src.schemas.contract import ContractCreate, ContractUpdate
 from src.utils.http_error import BadRequestError, NotFoundError
 
-CONTRACT_DIR = Path("/app/static/contracts")
+# CONTRACT_DIR = Path("/app/static/contracts")
+ROOT_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent
+STATIC_DIR: Path = ROOT_DIR / "static"
+CONTRACT_DIR: Path = STATIC_DIR / "contracts"
 ALLOWED: set[str] = {".pdf", ".png"}
 
 
@@ -53,7 +56,7 @@ class ContractRepository(CRUDRepository[Contract, ContractCreate, ContractUpdate
             while chunk := await upload.read(8192):
                 await f.write(chunk)
 
-        rel_path: Path = dest.relative_to("/app")
+        rel_path: Path = dest.relative_to(STATIC_DIR)
         obj_in = ContractCreate(order_id=order_id, file_path=str(rel_path))
         return await super().create(session, obj_in)
 

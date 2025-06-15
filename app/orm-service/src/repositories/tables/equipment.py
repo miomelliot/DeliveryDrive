@@ -1,6 +1,6 @@
 # src/repositories/tables/equipment.py
-
 from typing import Sequence, Tuple
+from uuid import UUID
 
 from sqlalchemy import Result, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +49,7 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
         new_status_code: str,
         limit: int,
         model: str,
+        client_address_id: UUID | None = None,
     ) -> list[Equipment]:
         status_repo = EquipmentStatusRepository()
         old_status_id: int = await status_repo.get_id(session, old_status_code)
@@ -68,6 +69,19 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
 
         for eq in equipment_list:
             eq.equipment_status_id = new_status_id
+
+            if new_status_code == "rented":
+                if not client_address_id:
+                    raise ConflictError("Не указан адрес клиента для назначения оборудования")
+                eq.current_address_id = client_address_id
+
+            elif new_status_code == "available":
+                if not eq.warehouse_id:
+                    raise ConflictError(f"У оборудования {eq.serial_number} не задан склад")
+                warehouse: Warehouse | None = await session.get(Warehouse, eq.warehouse_id)
+                if not warehouse:
+                    raise ConflictError(f"Склад с id={eq.warehouse_id} не найден")
+                eq.current_address_id = warehouse.address_id
 
         await session.flush()
         return list(equipment_list)

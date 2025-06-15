@@ -37,7 +37,9 @@ class ClientRepository(CRUDRepository[Client, ClientCreate, ClientUpdate]):
 
         if raw.location is not None:
             addr_update = AddressUpdateAPI(location=raw.location)
-            address: Address = await AddressRepository().update_by_id_raw(session, client_id, addr_update)
+            client: Client = await self.get(session, client_id)
+            
+            address: Address = await AddressRepository().update_by_id_raw(session, client.address_id, addr_update)
             kwargs["address_id"] = address.id
 
         if raw.phone is not None:
