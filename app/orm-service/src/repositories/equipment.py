@@ -7,7 +7,7 @@ from sqlalchemy import Result, Row, ScalarResult, Select, case, delete, func, se
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Address, Equipment, EquipmentStatus, HeaterType, Maintenance, Warehouse
-from src.schemas.equipment import EquipmentCreate, EquipmentFilter, EquipmentRead
+from src.schemas.equipment import EquipmentCreateAPI, EquipmentFilter, EquipmentReadAPI
 from src.schemas.equipment_chart import EquipmentChartRead
 from src.utils.http_error import ConflictError, InternalServerError, NotFoundError
 from src.utils.sqlalchemy_expr import location_expr
@@ -17,7 +17,7 @@ class EquipmentRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
 
-    async def add_equipment(self, data: EquipmentCreate) -> Equipment:
+    async def add_equipment(self, data: EquipmentCreateAPI) -> Equipment:
         dup: UUID | None = await self.session.scalar(
             select(Equipment.id).where(Equipment.serial_number == data.serial_number)
         )
@@ -74,7 +74,7 @@ class EquipmentRepository:
         result: ScalarResult[str] = await self.session.scalars(stmt)
         return list(result)
 
-    async def list_models_with_count(self, filter: EquipmentFilter) -> list[EquipmentRead]:
+    async def list_models_with_count(self, filter: EquipmentFilter) -> list[EquipmentReadAPI]:
         stmt: Select[Tuple[str, float, float, int, int]] = (
             select(
                 HeaterType.model,
@@ -92,7 +92,7 @@ class EquipmentRepository:
             stmt = stmt.where(EquipmentStatus.code == filter.status)
 
         result: Result[Tuple[str, float, float, int, int]] = await self.session.execute(stmt)
-        return [EquipmentRead.model_validate(row._asdict()) for row in result.all()]
+        return [EquipmentReadAPI.model_validate(row._asdict()) for row in result.all()]
 
     async def delete_equipment(self, equipment_id: UUID) -> None:
         await self.session.execute(delete(Equipment).where(Equipment.id == equipment_id))

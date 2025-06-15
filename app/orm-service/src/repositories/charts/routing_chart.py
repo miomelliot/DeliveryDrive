@@ -8,7 +8,7 @@ from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from src.db.models import Address, Client, Order, OrderStatus, RouteItem
+from src.db.models import Address, BaseLookup, Client, Order, RouteItem
 from src.schemas.routing_chart import RoutingChartFilter, RoutingChartRead
 from src.utils.formatters import format_time_range
 from src.utils.sqlalchemy_expr import location_expr
@@ -28,11 +28,11 @@ class RoutingChartRepository:
                 Order.window_end,
                 Client.phone,
                 location_expr().label("location"),
-                OrderStatus.description,
+                BaseLookup.description,
             )
             .join(Client, Client.id == Order.client_id)
             .join(Address, Address.id == Client.address_id)
-            .join(OrderStatus, OrderStatus.id == Order.status_id)
+            .join(BaseLookup, BaseLookup.id == Order.status_id)
         )
 
         if filters.route_id:
@@ -43,12 +43,12 @@ class RoutingChartRepository:
             like: str = f"%{filters.search.lower()}%"
             stmt = stmt.where(
                 func.lower(Client.phone).like(like)
-                | func.lower(OrderStatus.description).like(like)
+                | func.lower(BaseLookup.description).like(like)
                 | func.lower(location_expr()).like(like)
             )
 
         if filters.description:
-            stmt = stmt.where(OrderStatus.description == filters.description)
+            stmt = stmt.where(BaseLookup.description == filters.description)
 
         if filters.window_start_from:
             stmt = stmt.where(Order.window_start >= filters.window_start_from)
@@ -56,7 +56,7 @@ class RoutingChartRepository:
             stmt = stmt.where(Order.window_end <= filters.window_end_to)
 
         if filters.only_active:
-            stmt = stmt.where(~OrderStatus.code.in_(["completed", "cancelled"]))
+            stmt = stmt.where(~BaseLookup.code.in_(["completed", "cancelled"]))
 
         field_map = {
             "id": Order.id,
@@ -66,7 +66,7 @@ class RoutingChartRepository:
             "window_end": Order.window_end,
             "phone": Client.phone,
             "location": location_expr(),
-            "description": OrderStatus.description,
+            "description": BaseLookup.description,
         }
         sort_col = field_map.get(filters.order_by, Order.id)
         stmt = stmt.order_by(sort_col.desc() if filters.order_dir == "desc" else sort_col.asc())
@@ -91,6 +91,6 @@ class RoutingChartRepository:
         ]
 
     async def get_unique_descriptions(self) -> list[str]:
-        stmt: Select[Tuple[str]] = select(func.distinct(OrderStatus.description)).order_by(OrderStatus.description)
+        stmt: Select[Tuple[str]] = select(func.distinct(BaseLookup.description)).order_by(BaseLookup.description)
         result: Result[Tuple[str]] = await self.session.execute(stmt)
         return [row[0] for row in result.all() if row[0]]

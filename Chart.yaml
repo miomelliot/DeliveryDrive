@@ -14,6 +14,4 @@ dependencies:
   - name: neo4j
     version: 5.*
     repository: "oci://registry-1.docker.io/bitnamicharts"
-  - name: kafka
-    version: 28.*
-    repository: "oci://registry-1.docker.io/bitnamicharts"
+

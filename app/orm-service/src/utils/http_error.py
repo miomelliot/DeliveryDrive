@@ -17,7 +17,7 @@ class BadRequestError(APIException):
 
 class UnauthorizedError(APIException):
     status_code = 401
-    detail = "Неавторизован"
+    detail = "Неавторизованн"
 
 
 class NotFoundError(APIException):
@@ -28,6 +28,11 @@ class NotFoundError(APIException):
 class ConflictError(APIException):
     status_code = 409
     detail = "Конфликт данных"
+
+
+class GoneError(APIException):
+    status_code = 410
+    detail = "Ресурс больше не доступен"
 
 
 class UnprocessableEntityError(APIException):

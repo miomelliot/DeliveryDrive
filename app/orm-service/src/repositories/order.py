@@ -15,9 +15,8 @@ from src.db.models import (
     InvoiceStatus,
     Order,
     OrderItem,
-    OrderStatus,
 )
-from src.schemas.order import EquipmentList, OrderCreate
+from src.schemas.order import EquipmentList, OrderCreateAPI
 from src.utils.history import add_order_history
 from src.utils.http_error import ConflictError, InternalServerError, NotFoundError, UnprocessableEntityError
 
@@ -26,10 +25,10 @@ class OrderRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session: AsyncSession = session
 
-    async def create_order(self, data: OrderCreate, uid: UUID) -> Order:
+    async def create_order(self, data: OrderCreateAPI, uid: UUID) -> Order:
         address: Address = await self._create_address(data.location)
         client: Client = await self._create_client(data, address.id)
-        status_id: int = await self._get_status_id(OrderStatus, "new", "Статус 'new' не найден")
+        status_id: int = await self._get_status_id(BaseLookup, "new", "Статус 'new' не найден")
         order: Order = await self._create_order_entity(data, client.id, status_id)
         invoice_status_id: int = await self._get_status_id(InvoiceStatus, "not_paid", "Статус 'not_paid' не найден")
         await self._create_invoice(order.id, invoice_status_id)
@@ -49,13 +48,13 @@ class OrderRepository:
         await self.session.flush()
         return address
 
-    async def _create_client(self, data: OrderCreate, address_id: UUID) -> Client:
+    async def _create_client(self, data: OrderCreateAPI, address_id: UUID) -> Client:
         client = Client(name=data.name or "-", phone=data.phone, address_id=address_id)
         self.session.add(client)
         await self.session.flush()
         return client
 
-    async def _create_order_entity(self, data: OrderCreate, client_id: UUID, status_id: int) -> Order:
+    async def _create_order_entity(self, data: OrderCreateAPI, client_id: UUID, status_id: int) -> Order:
         order = Order(
             client_id=client_id,
             rent_start=data.rent_start,
@@ -106,7 +105,7 @@ class OrderRepository:
             if not heater_type:
                 raise NotFoundError(f"Оборудование с моделью '{eq.model}' не найдено")
 
-            equipment_items = list(
+            equipment_items: list[Equipment] = list(
                 await self.session.scalars(
                     select(Equipment)
                     .where(

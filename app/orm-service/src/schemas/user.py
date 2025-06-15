@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-# ----- базовые -----
 class _UserInBase(BaseModel):
     first_name: str
     last_name: str | None
@@ -18,7 +17,6 @@ class _UserOutBase(_UserInBase):
     id: UUID
 
 
-# ----- input -----
 class UserManagerCreate(_UserInBase):
     password: str = Field(..., min_length=8)
 
@@ -49,7 +47,6 @@ class UserCourierUpdate(_UserUpdateBase):
     transport_name: Literal["walk", "bike", "scooter", "car", "van"] | None = None
 
 
-# ----- output -----
 class UserManagerRead(_UserOutBase):
     icon: str | None = Field(None, alias="avatar_path")
 
