@@ -1,5 +1,4 @@
 # src/repositories/tables/order.py
-
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession

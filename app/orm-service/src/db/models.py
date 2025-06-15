@@ -202,6 +202,7 @@ class Contract(Base):
     id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"), unique=True)
     file_path: Mapped[str] = mapped_column(Text)
+
     order: Mapped[Order] = relationship()
 
 
