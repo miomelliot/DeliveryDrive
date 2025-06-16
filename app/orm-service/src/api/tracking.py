@@ -16,8 +16,8 @@ async def create_tracking(
     data: TrackingCreate,
     session: AsyncSession = Depends(get_session_with_user),
 ) -> TrackingRead:
-    tracking: Tracking = await TrackingRepository().create(session, data)
-    return TTrackingRead.model_validate(tracking)
+    tracking: Tracking = await TrackingRepository().create_raw(session, data)
+    return TrackingRead.model_validate(tracking)
 
 
 @router.get("/order/{order_id}", response_model=OrderLastEvent)
