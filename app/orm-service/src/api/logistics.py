@@ -24,6 +24,8 @@ async def get_logistics(
     session: AsyncSession = Depends(get_session_with_user),
 ) -> dict[str, Any]:
     logistics: Logistics = await build_logistics(session, order_ids)
+    if not logistics.creates:
+        raise HTTPException(status_code=409, detail="No transports available")
     try:
         async with httpx.AsyncClient(base_url=OSRM_URL, timeout=5.0) as client:
             resp: httpx.Response = await client.post(
@@ -31,7 +33,8 @@ async def get_logistics(
                 json=logistics.model_dump(mode="json"),
             )
     except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
+        raise HTTPException(status_code=502, detail=detail) from exc
 
     # The OSRM service now returns 200 on success
     if resp.status_code != status.HTTP_200_OK:
@@ -46,6 +49,8 @@ async def assign_routes(
     session: AsyncSession = Depends(get_session_with_user),
 ) -> dict[str, list[str]]:
     logistics: Logistics = await build_logistics(session, order_ids)
+    if not logistics.creates:
+        raise HTTPException(status_code=409, detail="No transports available")
     try:
         async with httpx.AsyncClient(base_url=OSRM_URL, timeout=5.0) as client:
             resp: httpx.Response = await client.post(
@@ -53,7 +58,8 @@ async def assign_routes(
                 json=logistics.model_dump(mode="json"),
             )
     except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
+        raise HTTPException(status_code=502, detail=detail) from exc
 
     if resp.status_code != status.HTTP_200_OK:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
