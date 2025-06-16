@@ -89,9 +89,13 @@ async def build_logistics(
         lon=warehouse_db.address.lon,
     )
 
-    stmt_transports: Select[Tuple[Transport]] = select(Transport).options(
-        joinedload(Transport.transport_type),
-        selectinload(Transport.courier).joinedload(User.schedules),
+    stmt_transports: Select[Tuple[Transport]] = (
+        select(Transport)
+        .options(
+            joinedload(Transport.transport_type),
+            selectinload(Transport.courier).joinedload(User.schedules),
+        )
+        .order_by(Transport.id)
     )
     transports_db: Sequence[Transport] = (await session.scalars(stmt_transports)).all()
 
@@ -101,6 +105,7 @@ async def build_logistics(
 
         creates.append(
             CreateSchema(
+                courier_id=t.courier_id,
                 time_window=[
                     schedule.start_time if schedule else DEFAULT_COURIER_START,
                     schedule.end_time if schedule else DEFAULT_COURIER_END,

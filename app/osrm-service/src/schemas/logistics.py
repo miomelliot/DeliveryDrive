@@ -28,6 +28,7 @@ class TransportType(BaseModel):
 
 
 class Create(BaseModel):
+    courier_id: UUID
     time_window: list[time]
     transport_type: TransportType
 

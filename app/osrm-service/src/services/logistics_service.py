@@ -74,7 +74,7 @@ def _build_matrix(
     return matrix
 
 
-async def process_logistics(payload: Logistics, settings: Settings) -> List[List[str]]:
+async def process_logistics(payload: Logistics, settings: Settings) -> List[dict[str, Any]]:
     addresses: List[AddressRead] = [payload.warehouse]
     addresses.extend(list(_distinct_addresses(payload)))
 
@@ -92,12 +92,24 @@ async def process_logistics(payload: Logistics, settings: Settings) -> List[List
 
     matrix: List[List[float]] = _build_matrix(addr_ids, existing)
 
-    return [
-        [str(order_id) for order_id in route]
-        for route in solve_vrp(
-            matrix,
-            payload.orders,
-            payload.creates,
-            payload.solver,
+    routes = solve_vrp(
+        matrix,
+        payload.orders,
+        payload.creates,
+        payload.solver,
+    )
+
+    result: List[dict[str, Any]] = []
+    for idx, route in enumerate(routes):
+        result.append(
+            {
+                "courier_id": str(payload.creates[idx].courier_id),
+                "time_window": [
+                    payload.creates[idx].time_window[0].isoformat(),
+                    payload.creates[idx].time_window[1].isoformat(),
+                ],
+                "orders": [str(order_id) for order_id in route],
+            }
         )
-    ]
+
+    return result
