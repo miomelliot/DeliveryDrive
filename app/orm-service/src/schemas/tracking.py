@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -6,8 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 class _TrackingBase(BaseModel):
     route_item_id: UUID
-    event_type_id: int
-    event_time: datetime
+    event_type: str
 
 
 class TrackingCreate(_TrackingBase):
