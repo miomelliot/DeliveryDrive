@@ -55,7 +55,7 @@ class Order(BaseModel):
 
 
 class Logistics(BaseModel):
-    
+    warehouse: AddressRead
     orders: list[Order]
     creates: list[Create]
     solver: Solver = Solver()

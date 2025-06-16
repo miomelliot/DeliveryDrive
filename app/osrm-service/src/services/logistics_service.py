@@ -18,11 +18,13 @@ def _distinct_addresses(payload: Logistics) -> Generator[AddressRead, Any, None]
         addr: AddressRead = order.address
         if addr.id not in seen:
             seen.add(str(addr.id))
-            yield addr
+            if addr.id != payload.warehouse.id:
+                yield addr
 
 
 async def ingest_addresses(payload: Logistics) -> None:
-    addresses: List[AddressRead] = list(_distinct_addresses(payload))
+    addresses: List[AddressRead] = [payload.warehouse]
+    addresses.extend(list(_distinct_addresses(payload)))
     async with get_neo4j_session() as session:
         await upsert_addresses(session, addresses)
 
@@ -60,10 +62,10 @@ def _build_matrix(
     existing: Dict[Tuple[str, str], float],
 ) -> List[List[float]]:
     size: int = len(addr_ids)
-    matrix: List[List[float]] = [[0.0 for _ in range(size + 1)] for _ in range(size + 1)]
+    matrix: List[List[float]] = [[0.0 for _ in range(size)] for _ in range(size)]
 
-    for i, from_id in enumerate(addr_ids, start=1):
-        for j, to_id in enumerate(addr_ids, start=1):
+    for i, from_id in enumerate(addr_ids):
+        for j, to_id in enumerate(addr_ids):
             if i == j:
                 matrix[i][j] = 0.0
             else:
@@ -73,7 +75,8 @@ def _build_matrix(
 
 
 async def process_logistics(payload: Logistics, settings: Settings) -> List[List[str]]:
-    addresses: List[AddressRead] = list(_distinct_addresses(payload))
+    addresses: List[AddressRead] = [payload.warehouse]
+    addresses.extend(list(_distinct_addresses(payload)))
 
     async with get_neo4j_session() as session:
         await upsert_addresses(session, addresses)
