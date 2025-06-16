@@ -1,7 +1,8 @@
+from datetime import date
 from typing import Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import Result, func, select
+from sqlalchemy import Result, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
@@ -11,7 +12,12 @@ from src.schemas.route import RouteItemStatus, RouteRead
 
 class RouteRepository:
     async def list_by_courier(self, session: AsyncSession, courier_id: UUID) -> list[RouteRead]:
-        stmt: Select[Tuple[Route]] = select(Route).where(Route.courier_id == courier_id).order_by(Route.date.desc())
+        stmt: Select[Tuple[Route]] = select(Route).where(
+            and_(
+                Route.courier_id == courier_id,
+                Route.date == date.today(),
+            )
+        )
         res: Result[Tuple[Route]] = await session.execute(stmt)
         routes: Sequence[Route] = res.scalars().all()
         return [RouteRead.model_validate(r) for r in routes]
@@ -26,7 +32,7 @@ class RouteRepository:
             .subquery()
         )
 
-        stmt: Select[Tuple[UUID, UUID | None, int, str | None]] = (
+        stmt = (
             select(
                 RouteItem.id,
                 RouteItem.order_id,
@@ -44,6 +50,6 @@ class RouteRepository:
             .order_by(RouteItem.sequence)
         )
 
-        res: Result[Tuple[UUID, UUID | None, int, str | None]] = await session.execute(stmt)
-        rows: Sequence[Tuple[UUID, UUID | None, int, str | None]] = res.fetchall()
+        res = await session.execute(stmt)
+        rows = res.fetchall()
         return [RouteItemStatus(id=r[0], order_id=r[1], sequence=r[2], status=r[3]) for r in rows]
