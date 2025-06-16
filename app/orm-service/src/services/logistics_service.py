@@ -7,7 +7,16 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from src.db.models import Address, Client, CourierSchedule, Order, OrderItem, Transport, User
+from src.db.models import (
+    Address,
+    Client,
+    CourierSchedule,
+    Order,
+    OrderItem,
+    Transport,
+    User,
+    Warehouse,
+)
 from src.schemas.logistics import (
     AddressRead,
     CreateSchema,
@@ -65,6 +74,21 @@ async def build_logistics(
             )
         )
 
+    warehouse_db: Warehouse | None = await session.scalar(
+        select(Warehouse).options(joinedload(Warehouse.address)).limit(1)
+    )
+    if warehouse_db is None:
+        raise ValueError("Warehouse not found")
+
+    warehouse = AddressRead(
+        id=warehouse_db.address.id,
+        city=warehouse_db.address.city,
+        street=warehouse_db.address.street,
+        building=warehouse_db.address.building,
+        lat=warehouse_db.address.lat,
+        lon=warehouse_db.address.lon,
+    )
+
     stmt_transports: Select[Tuple[Transport]] = select(Transport).options(
         joinedload(Transport.transport_type),
         selectinload(Transport.courier).joinedload(User.schedules),
@@ -90,6 +114,7 @@ async def build_logistics(
         )
 
     return Logistics(
+        warehouse=warehouse,
         orders=orders,
         creates=creates,
     )
