@@ -19,9 +19,9 @@ async def save_routes(
 ) -> list[Route]:
     """Persist routes and create tracking records."""
 
-    scheduled_id = await OrderStatusRepository().get_code_id(session, "scheduled")
+    scheduled_id: int = await OrderStatusRepository().get_code_id(session, "scheduled")
     created: list[Route] = []
-    now = datetime.now(timezone.utc)
+    now: datetime = datetime.now(timezone.utc)
 
     for plan in plans:
         courier_id = UUID(str(plan["courier_id"]))
@@ -38,7 +38,7 @@ async def save_routes(
         session.add(route)
         await session.flush()
 
-        order_ids = [UUID(o) for o in plan.get("orders", [])]  # type: ignore
+        order_ids: list[UUID] = [UUID(o) for o in plan.get("orders", [])]  # type: ignore
         for seq, oid in enumerate(order_ids):
             item = RouteItem(route_id=route.id, order_id=oid, sequence=seq)
             session.add(item)
@@ -47,7 +47,7 @@ async def save_routes(
             session.add(
                 Tracking(
                     route_item_id=item.id,
-                    event_type_id=1,  # route_assigned
+                    event_type_id=1,
                     event_time=now,
                 )
             )
