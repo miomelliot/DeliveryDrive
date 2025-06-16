@@ -4,6 +4,7 @@ from typing import Any, AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
+from loguru import logger
 from neo4j._async.work.session import AsyncSession
 from sqlalchemy.ext.asyncio import AsyncSession as DBSession
 
@@ -29,8 +30,14 @@ async def upload_logistics(
     payload: Logistics,
     neo: AsyncSession = Depends(neo4j_session_ctx),
 ) -> dict[str, list[dict[str, Any]]]:
+    logger.info(
+        "Received logistics payload with %d orders and %d couriers",
+        len(payload.orders),
+        len(payload.creates),
+    )
     settings: Settings = get_settings()
     routes: list[dict[str, Any]] = await process_logistics(payload, settings)
+    logger.info("Generated %d routes", len(routes))
     return {"routes": routes}
 
 
@@ -39,9 +46,11 @@ async def assign_routes(
     order_ids: list[UUID],
     session: DBSession = Depends(get_session),
 ) -> dict[str, list[str]]:
+    logger.info("Assigning routes for %d orders", len(order_ids))
     payload: Logistics = await build_logistics(session, order_ids)
     settings: Settings = get_settings()
     plans: list[dict[str, Any]] = await process_logistics(payload, settings)
     created = await save_routes(session, plans)
     await session.commit()
+    logger.info("Saved %d routes", len(created))
     return {"routes": [str(r.id) for r in created]}

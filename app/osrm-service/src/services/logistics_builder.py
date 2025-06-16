@@ -56,9 +56,7 @@ async def build_logistics(
         if addr is None:
             raise ValueError(f"Order {order.id} has no address")
 
-        weight: float | Literal[0] = sum(
-            item.quantity * item.heater_type.weight for item in order.items
-        )
+        weight: float | Literal[0] = sum(item.quantity * item.heater_type.weight for item in order.items)
         orders.append(
             OrderSchema(
                 order_id=order.id,
