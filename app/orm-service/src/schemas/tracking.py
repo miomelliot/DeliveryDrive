@@ -25,3 +25,9 @@ class OrderLastEvent(BaseModel):
     order_id: UUID
     description: str | None
     model_config = ConfigDict(from_attributes=True)
+
+
+class RouteLastEvent(BaseModel):
+    route_id: UUID
+    description: str | None
+    model_config = ConfigDict(from_attributes=True)
