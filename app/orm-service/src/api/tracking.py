@@ -6,17 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import Tracking
 from src.dependencies.db import get_session_with_user
 from src.repositories.tables.tracking import TrackingRepository
-from src.schemas.tracking import OrderLastEvent, TrackingCreate
+from src.schemas.tracking import OrderLastEvent, TrackingCreate, TrackingRead
 
 router = APIRouter(prefix="/tracking", tags=["Tracking"])
 
 
-@router.post("/", response_model=Tracking, status_code=201)
+@router.post("/", response_model=TrackingRead, status_code=201)
 async def create_tracking(
     data: TrackingCreate,
     session: AsyncSession = Depends(get_session_with_user),
-) -> Tracking:
-    return await TrackingRepository().create(session, data)
+) -> TrackingRead:
+    tracking: Tracking = await TrackingRepository().create(session, data)
+    return TrackingRead.model_validate(tracking)
 
 
 @router.get("/order/{order_id}", response_model=OrderLastEvent)
