@@ -55,6 +55,7 @@ class Order(BaseModel):
 
 
 class Logistics(BaseModel):
+    
     orders: list[Order]
     creates: list[Create]
     solver: Solver = Solver()
