@@ -23,7 +23,9 @@ async def get_logistics(
     order_ids: list[UUID],
     session: AsyncSession = Depends(get_session_with_user),
 ) -> dict[str, Any]:
-    logger.info("Building logistics for %d orders", len(order_ids))
+    logger.info(
+        f"Building logistics for {len(order_ids)} orders",
+    )
     logistics: Logistics = await build_logistics(session, order_ids)
     try:
         async with httpx.AsyncClient(base_url=OSRM_URL, timeout=5.0) as client:
@@ -37,11 +39,7 @@ async def get_logistics(
         raise HTTPException(status_code=502, detail=detail) from exc
 
     if resp.status_code != status.HTTP_200_OK:
-        logger.error(
-            "OSRM service returned %s: %s",
-            resp.status_code,
-            resp.text,
-        )
+        logger.error(f"OSRM service returned {resp.status_code}: {resp.text}")
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
     logger.info("Received routes from OSRM service")
