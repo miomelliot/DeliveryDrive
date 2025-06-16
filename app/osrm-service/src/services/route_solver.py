@@ -139,8 +139,10 @@ def solve_vrp(
     solver_cfg: Solver,
 ) -> list[list[UUID]]:
     logger.debug(f"Solving VRP: {len(orders)} orders, {len(creates)} vehicles")
+
     num_nodes: int = len(distance_matrix)
     logger.debug(f"Creating routing manager for {num_nodes} nodes")
+
     manager = pywrapcp.RoutingIndexManager(num_nodes, len(creates), 0)
     routing = pywrapcp.RoutingModel(manager)
     logger.debug("Routing model initialized")
@@ -151,26 +153,31 @@ def solve_vrp(
         return int(distance_matrix[from_node][to_node])
 
     distance_index = routing.RegisterTransitCallback(distance_callback)
-    logger.debug(f"Distance callback registered with index {distance_index}")
     routing.SetArcCostEvaluatorOfAllVehicles(distance_index)
+    logger.debug(f"Distance callback registered with index {distance_index}")
     logger.debug("Arc cost evaluator set for all vehicles")
 
+    # Подключение ограничений
     _add_capacity_dimension(routing, manager, orders, creates)
     _add_time_dimension(routing, manager, distance_matrix, orders, creates, solver_cfg)
 
+    # Параметры поиска
     search_params = pywrapcp.DefaultRoutingSearchParameters()
     search_params.time_limit.FromSeconds(solver_cfg.max_runtime_sec)
     search_params.solution_limit = solver_cfg.num_solutions
-
-    if hasattr(search_params, "number_of_search_workers"):
-        search_params.number_of_search_workers = solver_cfg.num_search_workers
-    elif hasattr(search_params, "num_search_workers"):
-        search_params.num_search_workers = solver_cfg.num_search_workers
     search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    search_params.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+
+    # Многопоточность
+    try:
+        search_params.num_search_workers = solver_cfg.num_search_workers
+    except AttributeError:
+        logger.warning("ORTools: num_search_workers not supported — fallback to single thread")
+
     logger.debug(
         f"Search parameters: time_limit={solver_cfg.max_runtime_sec}, "
         f"solutions={solver_cfg.num_solutions}, workers={solver_cfg.num_search_workers}, "
-        f"strategy=PATH_CHEAPEST_ARC"
+        f"strategy=PATH_CHEAPEST_ARC, metaheuristic=GUIDED_LOCAL_SEARCH"
     )
 
     logger.debug("Starting solver")
@@ -182,4 +189,5 @@ def solve_vrp(
     logger.debug(f"Solver finished with objective value {solution.ObjectiveValue()}")
     routes: list[list[UUID]] = _extract_routes(routing, manager, solution, orders, creates)
     logger.debug(f"VRP solver produced {len(routes)} routes")
+
     return routes
