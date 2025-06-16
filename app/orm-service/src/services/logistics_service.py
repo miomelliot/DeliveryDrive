@@ -3,6 +3,7 @@ from datetime import time as dt_time
 from typing import Literal, Sequence, Tuple
 from uuid import UUID
 
+from loguru import logger
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -26,6 +27,7 @@ from src.schemas.logistics import (
 from src.schemas.logistics import (
     TransportType as TransportTypeSchema,
 )
+from src.utils.http_error import NotFoundError
 
 DEFAULT_SERVICE_DURATION_SEC = 1_500  # ~25 минут
 DEFAULT_COURIER_START: dt_time = dt_time(9)  # 09:00
@@ -53,7 +55,7 @@ async def build_logistics(
     for order in orders_db:
         addr: Address = order.client.address
         if addr is None:
-            raise ValueError(f"Order {order.id} has no address")
+            raise NotFoundError(f"Order {order.id} has no address")
 
         weight: float | Literal[0] = sum(item.quantity * item.heater_type.weight for item in order.items)
 
@@ -78,7 +80,7 @@ async def build_logistics(
         select(Warehouse).options(joinedload(Warehouse.address)).limit(1)
     )
     if warehouse_db is None:
-        raise ValueError("Warehouse not found")
+        raise NotFoundError("Склад не найден")
 
     warehouse = AddressRead(
         id=warehouse_db.address.id,
