@@ -166,13 +166,16 @@ def solve_vrp(
     search_params.time_limit.FromSeconds(solver_cfg.max_runtime_sec)
     search_params.solution_limit = solver_cfg.num_solutions
     search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    search_params.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
 
-    # Многопоточность
-    try:
+    if hasattr(search_params, "number_of_search_workers"):
+        search_params.number_of_search_workers = solver_cfg.num_search_workers
+    elif hasattr(search_params, "num_search_workers"):
         search_params.num_search_workers = solver_cfg.num_search_workers
-    except AttributeError:
-        logger.warning("ORTools: num_search_workers not supported — fallback to single thread")
+    else:
+        try:
+            search_params.sat_parameters.num_search_workers = solver_cfg.num_search_workers
+        except Exception:
+            logger.warning("ORTools: num_search_workers not supported — fallback to single thread")
 
     logger.debug(
         f"Search parameters: time_limit={solver_cfg.max_runtime_sec}, "
