@@ -55,6 +55,7 @@ class OrderSchema(BaseModel):
 
 
 class Logistics(BaseModel):
+    warehouse: AddressRead
     orders: list[OrderSchema]
     creates: list[CreateSchema]
     solver: Solver = Solver()
