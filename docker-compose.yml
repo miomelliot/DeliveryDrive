@@ -110,28 +110,18 @@ services:
         test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-changeme}", "RETURN 1"]
         interval: 30s
         retries: 10
-        
+
   osrm-backend:
-    image: osrm/osrm-backend
+    build:
+      context: ./app/osrm_backend
+      args:
+        PBF_URL: https://download.bbbike.org/osm/extract/planet_37.427_55.547_bec2b658.osm.pbf
     container_name: osrm-backend
     restart: unless-stopped
-    command: >
-      sh -c "
-        MAP=/data/planet.osm.pbf &&
-        OSRM=/data/planet.osrm &&
-        if [ ! -f $OSRM.ramIndex ]; then
-          echo '[INFO] First-time setup: downloading and preprocessing' &&
-          curl -L -o $MAP https://download.bbbike.org/osm/extract/planet_37.427_55.547_bec2b658.osm.pbf &&
-          osrm-extract -p /opt/car.lua $MAP &&
-          osrm-partition $OSRM &&
-          osrm-customize $OSRM
-        fi &&
-        osrm-routed --algorithm mld --max-table-size 10000 $OSRM
-      "
-    ports:
-      - "5000:5000"
     volumes:
       - ./data/osrm:/data
+    ports:
+      - "5000:5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
