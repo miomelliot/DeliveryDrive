@@ -12,9 +12,7 @@ class TrackingRepository(CRUDRepository[Tracking, TrackingCreate, TrackingUpdate
     def __init__(self) -> None:
         super().__init__(Tracking)
 
-    async def get_last_event_description(
-        self, session: AsyncSession, order_id: UUID
-    ) -> str | None:
+    async def get_last_event_description(self, session: AsyncSession, order_id: UUID) -> str | None:
         stmt: Select[tuple[str]] = (
             select(EventType.description)
             .select_from(Tracking)
