@@ -71,6 +71,6 @@ async def save_routes(
 
         created.append(route)
 
-    logger.info(f"%{len(created)} routes saved")
+    logger.info(f"{len(created)} routes saved")
 
     return created
