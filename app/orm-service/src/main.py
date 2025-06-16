@@ -13,6 +13,7 @@ from src.api import (
     equipment_chart,
     invoice_chart,
     logistics,
+    notification,
     order,
     order_chart,
     route_sheet_chart,
@@ -56,6 +57,8 @@ app.include_router(user.router)
 app.include_router(order.router)
 app.include_router(equipment.router)
 app.include_router(contract.router)
+# notifications
+app.include_router(notification.router)
 # widget
 app.include_router(widget.router)
 # dashboard
