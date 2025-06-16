@@ -53,7 +53,7 @@ async def build_logistics(
 
     orders: list[OrderSchema] = []
     for order in orders_db:
-        addr: Address | None = order.client.address  # type: ignore
+        addr: Address | None = order.client.address
         if addr is None:
             raise NotFoundError(f"Order {order.id} has no address")
 

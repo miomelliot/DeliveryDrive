@@ -11,6 +11,7 @@ def _to_seconds(value: time) -> int:
     return value.hour * 3600 + value.minute * 60 + value.second
 
 
+# ───────────────────────── Capacity ─────────────────────────
 def _add_capacity_dimension(
     routing: pywrapcp.RoutingModel,
     manager: pywrapcp.RoutingIndexManager,
@@ -39,6 +40,7 @@ def _add_capacity_dimension(
     logger.debug("Capacity dimension added")
 
 
+# ───────────────────────── Time (soft windows) ─────────────────────────
 def _add_time_dimension(
     routing: pywrapcp.RoutingModel,
     manager: pywrapcp.RoutingIndexManager,
@@ -59,9 +61,11 @@ def _add_time_dimension(
 
     time_index = routing.RegisterTransitCallback(time_callback)
     logger.debug(f"Time callback registered with index {time_index}")
+
     horizon = 24 * 60 * 60
     wait_status = "enabled" if solver_cfg.allow_waiting else "disabled"
     logger.debug(f"Using horizon {horizon} with waiting {wait_status}")
+
     routing.AddDimension(
         time_index,
         horizon if solver_cfg.allow_waiting else 0,
@@ -71,23 +75,40 @@ def _add_time_dimension(
     )
     time_dimension = routing.GetDimensionOrDie("Time")
 
+    penalty = getattr(solver_cfg, "time_window_penalty", 10)
+
+    # ---- orders --------------------------------------------------------
     for i, order in enumerate(orders, start=1):
         idx = manager.NodeToIndex(i)
         start = _to_seconds(order.time_window[0])
         end = _to_seconds(order.time_window[1])
-        logger.debug(f"Order {orders[i - 1].order_id} time window {start}-{end}")
+
+        # базовый диапазон
         time_dimension.CumulVar(idx).SetRange(start, end)
 
+        # мягкие границы  ← NEW
+        time_dimension.SetCumulVarSoftLowerBound(idx, start, penalty)
+        time_dimension.SetCumulVarSoftUpperBound(idx, end, penalty)
+
+        logger.debug(f"Order {order.order_id} time window {start}-{end} with soft penalty {penalty}/sec")
+
+    # ---- vehicles (start/end) -----------------------------------------
     for vid, cr in enumerate(creates):
         start = _to_seconds(cr.time_window[0])
         end = _to_seconds(cr.time_window[1])
-        logger.debug(f"Vehicle {vid} time window {start}-{end}")
-        time_dimension.CumulVar(routing.Start(vid)).SetRange(start, end)
-        time_dimension.CumulVar(routing.End(vid)).SetRange(start, end)
+
+        for node in (routing.Start(vid), routing.End(vid)):
+            time_dimension.CumulVar(node).SetRange(start, end)
+            # мягкие границы  ← NEW
+            time_dimension.SetCumulVarSoftLowerBound(node, start, penalty)
+            time_dimension.SetCumulVarSoftUpperBound(node, end, penalty)
+
+        logger.debug(f"Vehicle {vid} soft window {start}-{end}")
 
     logger.debug("Time dimension added")
 
 
+# ───────────────────────── Extract routes ─────────────────────────
 def _extract_routes(
     routing: pywrapcp.RoutingModel,
     manager: pywrapcp.RoutingIndexManager,
@@ -113,6 +134,7 @@ def _extract_routes(
     return routes
 
 
+# ───────────────────────── Solver orchestrator ─────────────────────────
 def solve_vrp(
     distance_matrix: list[list[float]],
     orders: list[Order],
@@ -153,8 +175,8 @@ def solve_vrp(
     if solution is None:
         logger.warning("VRP solver returned no solution")
         return []
-    logger.debug(f"Solver finished with objective value {solution.ObjectiveValue()}")
 
+    logger.debug(f"Solver finished with objective value {solution.ObjectiveValue()}")
     routes = _extract_routes(routing, manager, solution, orders, creates)
     logger.debug(f"VRP solver produced {len(routes)} routes")
     return routes
