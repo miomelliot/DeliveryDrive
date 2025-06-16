@@ -3,7 +3,7 @@ from datetime import time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.schemas.address import AddressRead
 
@@ -36,5 +36,10 @@ class Order(BaseModel):
 class Logistics(BaseModel):
     orders: list[Order]
     creates: list[Create]
-    solver: Solver
+    solver: Solver = Solver()
     osrm_profile: Literal["driving", "foot", "bike"] = "driving"
+
+    @field_validator("orders.*.time_window", "creates.*.time_window")
+    def check_time_window(self, v: list[time]) -> list[time]:
+        assert len(v) == 2, "time_window должен содержать [start, end]"
+        return v
