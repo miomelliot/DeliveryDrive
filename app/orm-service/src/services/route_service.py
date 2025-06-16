@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from datetime import time as dt_time
 from typing import Sequence
 from uuid import UUID
 
@@ -26,8 +27,12 @@ async def save_routes(
     for plan in plans:
         courier_id = UUID(str(plan["courier_id"]))
         tw_start_str, tw_end_str = plan.get("time_window", [None, None])  # type: ignore
-        tw_start = datetime.fromisoformat(tw_start_str).time() if tw_start_str else now.time()  # type: ignore
-        tw_end = datetime.fromisoformat(tw_end_str).time() if tw_end_str else now.time()  # type: ignore
+        tw_start = (
+            dt_time.fromisoformat(tw_start_str) if tw_start_str else now.time()  # type: ignore
+        )
+        tw_end = (
+            dt_time.fromisoformat(tw_end_str) if tw_end_str else now.time()  # type: ignore
+        )
 
         route = Route(
             courier_id=courier_id,
