@@ -29,7 +29,6 @@ async def neo4j_session_ctx() -> AsyncIterator[AsyncSession]:
 @router.post("/", status_code=status.HTTP_200_OK)
 async def upload_logistics(
     payload: Logistics,
-    session: DBSession = Depends(get_session),
 ) -> dict[str, list[dict[str, Any]]]:
     logger.info(
         "Received logistics payload with %d orders and %d couriers",
