@@ -16,6 +16,7 @@ from src.api import (
     notification,
     order,
     order_chart,
+    route,
     route_sheet_chart,
     routing_chart,
     tracking_chart,
@@ -52,6 +53,8 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # logistics
 app.include_router(logistics.router)
+# routes
+app.include_router(route.router)
 # entities
 app.include_router(user.router)
 app.include_router(order.router)
