@@ -11,13 +11,6 @@ from src.schemas.logistics import AddressRead
 async def fetch_distance_matrix(
     addresses: Sequence[AddressRead], profile: str, settings: Settings
 ) -> list[list[float]]:
-    """Fetch full distance matrix for the given addresses.
-
-    The OSRM table service has a hard limit on the number of coordinates per
-    request, therefore batches of more than 100 points are sliced and the
-    resulting matrices are merged together.
-    """
-
     coords_all: list[str] = [f"{a.lon},{a.lat}" for a in addresses]
     n: int = len(coords_all)
     matrix: list[list[float]] = [[0.0 for _ in range(n)] for _ in range(n)]

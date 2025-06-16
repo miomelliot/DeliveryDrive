@@ -1,4 +1,5 @@
 from datetime import time
+from typing import Any
 from uuid import UUID
 
 from loguru import logger
@@ -19,8 +20,8 @@ def _add_capacity_dimension(
     creates: list[Create],
 ) -> None:
     logger.debug("Setting up capacity dimension")
-    demands = [0] + [int(o.weight) for o in orders]
-    capacities = [int(c.transport_type.capacity) for c in creates]
+    demands: list[int] = [0] + [int(o.weight) for o in orders]
+    capacities: list[int] = [int(c.transport_type.capacity) for c in creates]
     logger.debug(f"Demands: {demands}")
     logger.debug(f"Vehicle capacities: {capacities}")
 
@@ -50,7 +51,7 @@ def _add_time_dimension(
     solver_cfg: Solver,
 ) -> None:
     logger.debug("Setting up time dimension")
-    service_times = [0] + [int(o.service_duration) for o in orders]
+    service_times: list[int] = [0] + [int(o.service_duration) for o in orders]
     logger.debug(f"Service times: {service_times}")
 
     def time_callback(from_index: int, to_index: int) -> int:
@@ -75,7 +76,7 @@ def _add_time_dimension(
     )
     time_dimension = routing.GetDimensionOrDie("Time")
 
-    penalty = getattr(solver_cfg, "time_window_penalty", 10)
+    penalty: Any | int = getattr(solver_cfg, "time_window_penalty", 10)
 
     # ---- orders --------------------------------------------------------
     for i, order in enumerate(orders, start=1):
@@ -138,7 +139,7 @@ def solve_vrp(
     solver_cfg: Solver,
 ) -> list[list[UUID]]:
     logger.debug(f"Solving VRP: {len(orders)} orders, {len(creates)} vehicles")
-    num_nodes = len(distance_matrix)
+    num_nodes: int = len(distance_matrix)
     logger.debug(f"Creating routing manager for {num_nodes} nodes")
     manager = pywrapcp.RoutingIndexManager(num_nodes, len(creates), 0)
     routing = pywrapcp.RoutingModel(manager)

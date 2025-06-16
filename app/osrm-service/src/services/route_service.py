@@ -8,7 +8,7 @@ from typing import Sequence
 from uuid import UUID
 
 from loguru import logger
-from sqlalchemy import Select, select, update
+from sqlalchemy import Result, Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Order, OrderStatus, Route, RouteItem, Tracking
@@ -16,7 +16,7 @@ from src.db.models import Order, OrderStatus, Route, RouteItem, Tracking
 
 async def _get_status_id(session: AsyncSession, code: str) -> int:
     stmt: Select[tuple[int]] = select(OrderStatus.id).where(OrderStatus.code == code)
-    res = await session.execute(stmt)
+    res: Result[tuple[int]] = await session.execute(stmt)
     status_id: int | None = res.scalars().first()
     if status_id is None:
         raise ValueError(f"Status with code '{code}' not found")
@@ -27,7 +27,6 @@ async def save_routes(
     session: AsyncSession,
     plans: Sequence[dict[str, object]],
 ) -> list[Route]:
-    """Persist routes and create tracking records."""
     logger.info(f"Saving {len(plans)} planned routes")
     scheduled_id: int = await _get_status_id(session, "scheduled")
     created: list[Route] = []

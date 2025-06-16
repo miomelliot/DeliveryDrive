@@ -25,7 +25,6 @@ def _distinct_addresses(payload: Logistics) -> Generator[AddressRead, Any, None]
 
 
 def _pairs(addr_ids: Sequence[str], matrix: list[list[float]]) -> list[tuple[str, str, float]]:
-    """Generate distance tuples from OSRM matrix."""
     rows: list[tuple[str, str, float]] = []
     for i, from_id in enumerate(addr_ids):
         for j, to_id in enumerate(addr_ids):
