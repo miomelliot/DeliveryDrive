@@ -19,6 +19,7 @@ from src.api import (
     route,
     route_sheet_chart,
     routing_chart,
+    tracking,
     tracking_chart,
     user,
     user_chart,
@@ -70,6 +71,7 @@ app.include_router(dashboard.router)
 app.include_router(user_chart.router)
 app.include_router(order_chart.router)
 app.include_router(routing_chart.router)
+app.include_router(tracking.router)
 app.include_router(tracking_chart.router)
 app.include_router(equipment_chart.router)
 app.include_router(route_sheet_chart.router)
