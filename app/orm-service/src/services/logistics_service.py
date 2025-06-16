@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from src.db.models import Address, Client, CourierSchedule, Order, OrderItem, Transport, User
 from src.schemas.logistics import (
@@ -32,7 +32,7 @@ async def build_logistics(
         .where(Order.id.in_(order_ids))
         .options(
             joinedload(Order.client).joinedload(Client.address),
-            joinedload(Order.items).joinedload(OrderItem.heater_type),
+            selectinload(Order.items).joinedload(OrderItem.heater_type),
         )
     )
     orders_db: Sequence[Order] = (await session.scalars(stmt_orders)).all()
