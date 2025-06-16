@@ -16,7 +16,7 @@ class AddressRead(BaseModel):
 
 
 class Solver(BaseModel):
-    max_runtime_sec: int = 250
+    max_runtime_sec: int = 1500
     num_solutions: int = 1
     allow_waiting: bool = True
     time_window_penalty: int = 3
