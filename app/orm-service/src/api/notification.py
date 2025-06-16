@@ -1,8 +1,10 @@
+from typing import Sequence
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models import Notification
 from src.dependencies.auth import get_current_user
 from src.dependencies.db import get_session_with_user
 from src.repositories.notification import NotificationRepository
@@ -17,7 +19,7 @@ async def get_notifications(
     session: AsyncSession = Depends(get_session_with_user),
     current_user: CurrentUser = Depends(get_current_user),
 ) -> list[NotificationRead]:
-    notifications = await NotificationRepository().list_by_user(session, current_user.id)
+    notifications: Sequence[Notification] = await NotificationRepository().list_by_user(session, current_user.id)
     return [NotificationRead.model_validate(n) for n in notifications]
 
 
