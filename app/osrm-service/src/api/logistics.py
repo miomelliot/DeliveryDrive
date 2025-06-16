@@ -1,4 +1,6 @@
 # src/api/logistics.py
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
 from fastapi import APIRouter, Depends, status
 from neo4j._async.work.session import AsyncSession
@@ -23,5 +25,5 @@ async def upload_logistics(
     neo: AsyncSession = Depends(neo4j_session_ctx),
 ) -> dict[str, list[list[str]]]:
     settings: Settings = get_settings()
-    routes: List[List[str]] = await process_logistics(payload, neo, settings)
+    routes: list[list[str]] = await process_logistics(payload, neo, settings)
     return {"routes": routes}
