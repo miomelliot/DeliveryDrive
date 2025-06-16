@@ -25,5 +25,5 @@ async def get_last_event(
     order_id: UUID,
     session: AsyncSession = Depends(get_session_with_user),
 ) -> OrderLastEvent:
-    description: str | None = await TrackingRepository().get_last_event_description(session, order_id)
+    description: str | None = await TrackingRepository().(session, order_id)
     return OrderLastEvent(order_id=order_id, description=description)
