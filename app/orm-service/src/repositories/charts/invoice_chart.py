@@ -47,7 +47,7 @@ class InvoiceChartRepository:
             .join(HeaterType, HeaterType.id == OrderItem.heater_type_id)
             .join(InvoiceStatus, Invoice.invoice_status_id == InvoiceStatus.id)
             .group_by(
-                Invoice.id,
+                Order.id,
                 Order.rent_start,
                 Order.rent_end,
                 Client.phone,
