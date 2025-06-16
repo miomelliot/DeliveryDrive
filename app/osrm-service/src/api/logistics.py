@@ -1,8 +1,8 @@
 # src/api/logistics.py
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 from uuid import UUID
-import asyncio
 
 from fastapi import APIRouter, Depends, status
 from loguru import logger
@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession as DBSession
 from src.core.config import Settings, get_settings
 from src.db.graph import get_neo4j_session
 from src.db.models import Route
-from src.db.session import get_session, AsyncSessionFactory
+from src.db.session import AsyncSessionFactory, get_session
 from src.schemas.logistics import Logistics
 from src.services.logistics_builder import build_logistics
 from src.services.logistics_service import process_logistics
