@@ -19,7 +19,7 @@ class Solver(BaseModel):
     max_runtime_sec: int = 250
     num_solutions: int = 1
     allow_waiting: bool = True
-    time_window_penalty: int = 10
+    time_window_penalty: int = 3
 
 
 class TransportType(BaseModel):

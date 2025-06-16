@@ -86,8 +86,6 @@ def _add_time_dimension(
         # базовый диапазон
         time_dimension.CumulVar(idx).SetRange(start, end)
 
-        # мягкие границы  ← NEW
-        time_dimension.SetCumulVarSoftLowerBound(idx, start, penalty)
         time_dimension.SetCumulVarSoftUpperBound(idx, end, penalty)
 
         logger.debug(f"Order {order.order_id} time window {start}-{end} with soft penalty {penalty}/sec")
@@ -99,8 +97,6 @@ def _add_time_dimension(
 
         for node in (routing.Start(vid), routing.End(vid)):
             time_dimension.CumulVar(node).SetRange(start, end)
-            # мягкие границы  ← NEW
-            time_dimension.SetCumulVarSoftLowerBound(node, start, penalty)
             time_dimension.SetCumulVarSoftUpperBound(node, end, penalty)
 
         logger.debug(f"Vehicle {vid} soft window {start}-{end}")
@@ -177,6 +173,6 @@ def solve_vrp(
         return []
 
     logger.debug(f"Solver finished with objective value {solution.ObjectiveValue()}")
-    routes = _extract_routes(routing, manager, solution, orders, creates)
+    routes: list[list[UUID]] = _extract_routes(routing, manager, solution, orders, creates)
     logger.debug(f"VRP solver produced {len(routes)} routes")
     return routes
