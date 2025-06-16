@@ -1,5 +1,7 @@
 from typing import Any, Dict, Generator, List, Tuple
 
+from loguru import logger
+
 from src.core.config import Settings
 from src.db.graph import get_neo4j_session
 from src.repositories.neo4j.address import (
@@ -28,8 +30,10 @@ async def _ensure_distances(
     profile: str,
     settings: Settings,
 ) -> Dict[Tuple[str, str], float]:
+    logger.debug("Ensuring distances for %d addresses", len(addr_ids))
     async with get_neo4j_session() as session:
         existing = await fetch_distances(session, addr_ids)
+        logger.debug("Found %d distances in cache", len(existing))
 
         if len(existing) < len(addr_ids) * len(addr_ids):
             matrix = await fetch_distance_matrix(addresses, profile, settings)
@@ -46,6 +50,7 @@ async def _ensure_distances(
                         existing[key] = dist
 
             await upsert_distances(session, missing_rows)
+            logger.debug("Inserted %d missing distances", len(missing_rows))
 
         return existing
 
@@ -55,6 +60,7 @@ def _build_matrix(
     existing: Dict[Tuple[str, str], float],
 ) -> List[List[float]]:
     size: int = len(addr_ids)
+    logger.debug("Building distance matrix %dx%d", size, size)
     matrix: List[List[float]] = [[0.0 for _ in range(size)] for _ in range(size)]
 
     for i, from_id in enumerate(addr_ids):
@@ -68,11 +74,17 @@ def _build_matrix(
 
 
 async def process_logistics(payload: Logistics, settings: Settings) -> List[dict[str, Any]]:
+    logger.info(
+        "Processing logistics: %d orders, %d couriers",
+        len(payload.orders),
+        len(payload.creates),
+    )
     addresses: List[AddressRead] = [payload.warehouse]
     addresses.extend(list(_distinct_addresses(payload)))
 
     async with get_neo4j_session() as session:
         await upsert_addresses(session, addresses)
+        logger.debug("Upserted %d addresses", len(addresses))
 
     addr_ids: List[str] = [str(a.id) for a in addresses]
 
@@ -84,6 +96,7 @@ async def process_logistics(payload: Logistics, settings: Settings) -> List[dict
     )
 
     matrix: List[List[float]] = _build_matrix(addr_ids, existing)
+    logger.debug("Distance matrix built")
 
     routes = solve_vrp(
         matrix,
@@ -91,6 +104,7 @@ async def process_logistics(payload: Logistics, settings: Settings) -> List[dict
         payload.creates,
         payload.solver,
     )
+    logger.info("Route solver produced %d routes", len(routes))
 
     result: List[dict[str, Any]] = []
     for idx, route in enumerate(routes):

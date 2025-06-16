@@ -7,6 +7,7 @@ from datetime import time as dt_time
 from typing import Sequence
 from uuid import UUID
 
+from loguru import logger
 from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +28,7 @@ async def save_routes(
     plans: Sequence[dict[str, object]],
 ) -> list[Route]:
     """Persist routes and create tracking records."""
-
+    logger.info("Saving %d planned routes", len(plans))
     scheduled_id: int = await _get_status_id(session, "scheduled")
     created: list[Route] = []
     now: datetime = datetime.now(timezone.utc)
@@ -42,6 +43,12 @@ async def save_routes(
             dt_time.fromisoformat(tw_end_str) if tw_end_str else now.time()  # type: ignore
         )
 
+        order_ids: list[UUID] = [UUID(o) for o in plan.get("orders", [])]  # type: ignore
+        logger.debug(
+            "Creating route for courier %s with %d orders",
+            courier_id,
+            len(order_ids),
+        )
         route = Route(
             courier_id=courier_id,
             date=date.today(),
@@ -50,8 +57,6 @@ async def save_routes(
         )
         session.add(route)
         await session.flush()
-
-        order_ids: list[UUID] = [UUID(o) for o in plan.get("orders", [])]  # type: ignore
         for seq, oid in enumerate(order_ids):
             item = RouteItem(route_id=route.id, order_id=oid, sequence=seq)
             session.add(item)
@@ -66,10 +71,10 @@ async def save_routes(
             )
 
         if order_ids:
-            await session.execute(
-                update(Order).where(Order.id.in_(order_ids)).values(status_id=scheduled_id)
-            )
+            await session.execute(update(Order).where(Order.id.in_(order_ids)).values(status_id=scheduled_id))
 
         created.append(route)
+
+    logger.info("%d routes saved", len(created))
 
     return created
