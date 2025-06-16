@@ -14,5 +14,4 @@ async def get_route_sheet_chart(
     filters: RouteSheetChartFilter = Depends(),
     session: AsyncSession = Depends(get_session_with_user),
 ) -> list[RouteSheetChart]:
-    repo = RouteSheetChartRepository(session)
-    return await repo.get_chart(filters)
+    return await RouteSheetChartRepository().get_chart(session, filters)

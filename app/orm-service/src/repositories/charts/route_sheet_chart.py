@@ -2,7 +2,7 @@
 from typing import Sequence, Tuple
 from uuid import UUID
 
-from sqlalchemy import Result, func, select
+from sqlalchemy import Result, case, func, select
 from sqlalchemy.engine.row import Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
@@ -13,10 +13,7 @@ from src.utils.sqlalchemy_expr import full_name_expr
 
 
 class RouteSheetChartRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
-
-    async def get_chart(self, filters: RouteSheetChartFilter) -> list[RouteSheetChart]:
+    async def get_chart(self, session: AsyncSession, filters: RouteSheetChartFilter) -> list[RouteSheetChart]:
         stmt: Select[Tuple[UUID, str, int, int]] = (
             select(
                 Route.id,
@@ -24,7 +21,7 @@ class RouteSheetChartRepository:
                 func.count(RouteItem.id).label("count_orders"),
                 func.count(
                     func.distinct(
-                        func.case(
+                        case(
                             (
                                 EventType.code.in_(["installed", "picked_up"]),
                                 Tracking.route_item_id,
@@ -56,7 +53,7 @@ class RouteSheetChartRepository:
 
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        res: Result[Tuple[UUID, str, int, int]] = await self.session.execute(stmt)
+        res: Result[Tuple[UUID, str, int, int]] = await session.execute(stmt)
         rows: Sequence[Row[Tuple[UUID, str, int, int]]] = res.fetchall()
 
         return [
