@@ -41,12 +41,14 @@ class InvoiceChartRepository:
                 total_income_expr,
                 InvoiceStatus.description.label("status"),
             )
+            .select_from(Invoice)
             .join(Order, Order.id == Invoice.order_id)
             .join(Client, Client.id == Order.client_id)
             .join(OrderItem, OrderItem.order_id == Order.id)
             .join(HeaterType, HeaterType.id == OrderItem.heater_type_id)
             .join(InvoiceStatus, Invoice.invoice_status_id == InvoiceStatus.id)
             .group_by(
+                Invoice.id,
                 Order.id,
                 Order.rent_start,
                 Order.rent_end,
