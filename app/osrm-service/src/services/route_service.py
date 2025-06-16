@@ -7,11 +7,19 @@ from datetime import time as dt_time
 from typing import Sequence
 from uuid import UUID
 
-from sqlalchemy import update
+from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Order, Route, RouteItem, Tracking
-from src.repositories.tables.order_status import OrderStatusRepository
+from src.db.models import Order, OrderStatus, Route, RouteItem, Tracking
+
+
+async def _get_status_id(session: AsyncSession, code: str) -> int:
+    stmt: Select[tuple[int]] = select(OrderStatus.id).where(OrderStatus.code == code)
+    res = await session.execute(stmt)
+    status_id: int | None = res.scalars().first()
+    if status_id is None:
+        raise ValueError(f"Status with code '{code}' not found")
+    return status_id
 
 
 async def save_routes(
@@ -20,7 +28,7 @@ async def save_routes(
 ) -> list[Route]:
     """Persist routes and create tracking records."""
 
-    scheduled_id: int = await OrderStatusRepository().get_code_id(session, "scheduled")
+    scheduled_id: int = await _get_status_id(session, "scheduled")
     created: list[Route] = []
     now: datetime = datetime.now(timezone.utc)
 
@@ -58,7 +66,9 @@ async def save_routes(
             )
 
         if order_ids:
-            await session.execute(update(Order).where(Order.id.in_(order_ids)).values(status_id=scheduled_id))
+            await session.execute(
+                update(Order).where(Order.id.in_(order_ids)).values(status_id=scheduled_id)
+            )
 
         created.append(route)
 
