@@ -37,4 +37,4 @@ class Logistics(BaseModel):
     orders: list[Order]
     creates: list[Create]
     solver: Solver
-    osrm_profile: Literal["driving" , "foot" , "bike"]  = "driving"
+    osrm_profile: Literal["driving", "foot", "bike"] = "driving"
