@@ -15,7 +15,7 @@ async def fetch_distance_matrix(
     url: str = f"{settings.osrm_url.rstrip('/')}/table/v1/{profile}/{coords}"
     logger.debug("Requesting OSRM matrix: %s", url)
     start = perf_counter()
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp: httpx.Response = await client.get(url, params={"annotations": "distance"})
     resp.raise_for_status()
     duration = perf_counter() - start
