@@ -31,7 +31,8 @@ async def get_logistics(
                 json=logistics.model_dump(mode="json"),
             )
     except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
+        raise HTTPException(status_code=502, detail=detail) from exc
 
     # The OSRM service now returns 200 on success
     if resp.status_code != status.HTTP_200_OK:
@@ -53,7 +54,8 @@ async def assign_routes(
                 json=logistics.model_dump(mode="json"),
             )
     except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
+        raise HTTPException(status_code=502, detail=detail) from exc
 
     if resp.status_code != status.HTTP_200_OK:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
