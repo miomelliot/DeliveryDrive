@@ -31,6 +31,13 @@ class Create(BaseModel):
     time_window: list[time]
     transport_type: TransportType
 
+    @field_validator("time_window")
+    @classmethod
+    def validate_time_window(cls, v: list[time]) -> list[time]:
+        if len(v) != 2:
+            raise ValueError("time_window должен содержать [start, end]")
+        return v
+
 
 class Order(BaseModel):
     order_id: UUID
@@ -39,16 +46,18 @@ class Order(BaseModel):
     service_duration: int = Field(default=1500)
     time_window: list[time]
 
+    @field_validator("time_window")
+    @classmethod
+    def validate_time_window(cls, v: list[time]) -> list[time]:
+        if len(v) != 2:
+            raise ValueError("time_window должен содержать [start, end]")
+        return v
+
 
 class Logistics(BaseModel):
     orders: list[Order]
     creates: list[Create]
     solver: Solver = Solver()
     osrm_profile: Literal["driving", "foot", "bike"] = "driving"
-
-    @field_validator("orders.*.time_window", "creates.*.time_window")
-    def check_time_window(self, v: list[time]) -> list[time]:
-        assert len(v) == 2, "time_window должен содержать [start, end]"
-        return v
 
     model_config = ConfigDict(from_attributes=True)

@@ -3,6 +3,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from src.api import logistics
+
 app = FastAPI(title="osrm-servic")
 
 # CORS middleware
@@ -24,4 +26,4 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-# app.include_router(user.router)
+app.include_router(logistics.router)
