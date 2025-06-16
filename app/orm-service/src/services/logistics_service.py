@@ -67,7 +67,7 @@ async def build_logistics(
 
     stmt_transports: Select[Tuple[Transport]] = select(Transport).options(
         joinedload(Transport.transport_type),
-        joinedload(Transport.courier).joinedload(User.schedules),
+        selectinload(Transport.courier).joinedload(User.schedules),
     )
     transports_db: Sequence[Transport] = (await session.scalars(stmt_transports)).all()
 

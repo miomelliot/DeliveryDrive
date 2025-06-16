@@ -23,16 +23,10 @@ class Settings(BaseSettings):
 
     @property
     def neo4j_dsn(self) -> str:
-        creds: str = f"{self.neo4j_user}:{self.neo4j_password}@"
-        return f"{self.neo4j_scheme}://{creds}{self.neo4j_host}:{self.neo4j_port}"
+        return f"{self.neo4j_scheme}://{self.neo4j_host}:{self.neo4j_port}"
 
     # --- App / Debug ----------------------------------------------------------
     debug: bool = Field(False, alias="DEBUG")
-
-    # --- Auth/JWT -------------------------------------------------------------
-    jwt_secret: str = Field(default=str("super-secret-change-me"), alias="JWT_SECRET")
-    jwt_alg: str = Field("HS256", alias="JWT_ALG")
-    access_token_ttl: int = Field(60 * 24 * 30, alias="ACCESS_TOKEN_TTL_MIN")  # 30 дней
 
     # -- готовый DSN для SQLAlchemy ---------------------------------------------
     @property
