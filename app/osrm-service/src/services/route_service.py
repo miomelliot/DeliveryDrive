@@ -8,7 +8,16 @@ from loguru import logger
 from sqlalchemy import Result, Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Order, OrderStatus, Route, RouteItem, Tracking
+from src.db.models import (
+    Notification,
+    Order,
+    OrderStatus,
+    Role,
+    Route,
+    RouteItem,
+    Tracking,
+    User,
+)
 
 
 async def _get_status_id(session: AsyncSession, code: str) -> int:
@@ -20,6 +29,17 @@ async def _get_status_id(session: AsyncSession, code: str) -> int:
     return status_id
 
 
+async def _get_manager_ids(session: AsyncSession) -> list[UUID]:
+    stmt: Select[tuple[UUID]] = select(User.id).join(Role, User.role_id == Role.id).where(Role.name == "manager")
+    res: Result[tuple[UUID]] = await session.execute(stmt)
+    return list(res.scalars())
+
+
+async def _create_notifications(session: AsyncSession, user_ids: Sequence[UUID], text: str) -> None:
+    session.add_all([Notification(user_id=uid, text=text) for uid in user_ids])
+    await session.flush()
+
+
 async def save_routes(
     session: AsyncSession,
     plans: Sequence[dict[str, object]],
@@ -28,6 +48,7 @@ async def save_routes(
     scheduled_id: int = await _get_status_id(session, "scheduled")
     created: list[Route] = []
     now: datetime = datetime.now(timezone.utc)
+    manager_ids: list[UUID] = await _get_manager_ids(session)
 
     for plan in plans:
         courier_id = UUID(str(plan["courier_id"]))
@@ -64,6 +85,12 @@ async def save_routes(
 
         if order_ids:
             await session.execute(update(Order).where(Order.id.in_(order_ids)).values(status_id=scheduled_id))
+
+        await _create_notifications(
+            session,
+            [*manager_ids, courier_id],
+            f"Создан маршрут {route.id}",
+        )
 
         created.append(route)
 
