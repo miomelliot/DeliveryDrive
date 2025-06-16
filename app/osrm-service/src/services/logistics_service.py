@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple, Sequence
 
 from loguru import logger
 
@@ -24,6 +24,17 @@ def _distinct_addresses(payload: Logistics) -> Generator[AddressRead, Any, None]
                 yield addr
 
 
+def _pairs(addr_ids: Sequence[str], matrix: list[list[float]]) -> list[tuple[str, str, float]]:
+    """Generate distance tuples from OSRM matrix."""
+    rows: list[tuple[str, str, float]] = []
+    for i, from_id in enumerate(addr_ids):
+        for j, to_id in enumerate(addr_ids):
+            if i == j:
+                continue
+            rows.append((from_id, to_id, float(matrix[i][j])))
+    return rows
+
+
 async def _ensure_distances(
     addresses: List[AddressRead],
     addr_ids: List[str],
@@ -35,22 +46,23 @@ async def _ensure_distances(
         existing = await fetch_distances(session, addr_ids)
         logger.debug("Found %d distances in cache", len(existing))
 
-        if len(existing) < len(addr_ids) * len(addr_ids):
+        expected = len(addr_ids) * (len(addr_ids) - 1)
+        if len(existing) < expected:
             matrix = await fetch_distance_matrix(addresses, profile, settings)
-            missing_rows = []
+            sample = [row[:3] for row in matrix[:3]]
+            logger.debug("Matrix sample %s", sample)
 
-            for i, from_id in enumerate(addr_ids):
-                for j, to_id in enumerate(addr_ids):
-                    if i == j:
-                        continue
-                    key = (from_id, to_id)
-                    dist = float(matrix[i][j]) if matrix else 0.0
-                    if key not in existing:
-                        missing_rows.append((from_id, to_id, dist))
-                        existing[key] = dist
+            all_pairs = _pairs(addr_ids, matrix)
+            missing_rows = [(f, t, d) for f, t, d in all_pairs if (f, t) not in existing]
 
             await upsert_distances(session, missing_rows)
             logger.debug("Inserted %d missing distances", len(missing_rows))
+
+            for f, t, d in missing_rows:
+                existing[(f, t)] = d
+
+        if len(existing) != expected:
+            raise ValueError("Distance matrix incomplete")
 
         return existing
 
