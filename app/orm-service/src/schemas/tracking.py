@@ -10,8 +10,14 @@ class _TrackingBase(BaseModel):
     event_time: datetime | None = None
 
 
-class TrackingCreate(_TrackingBase):
+class TrackingCreateAPI(_TrackingBase):
     pass
+
+
+class TrackingCreate(BaseModel):
+    route_item_id: UUID
+    event_type_id: int
+    event_time: datetime
 
 
 class TrackingUpdate(BaseModel):

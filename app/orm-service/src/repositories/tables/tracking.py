@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Tuple
 from uuid import UUID
 
@@ -7,14 +8,21 @@ from sqlalchemy.sql import Select
 
 from src.db.models import EventType, RouteItem, Tracking
 from src.repositories.tables.base import CRUDRepository
-from src.schemas.tracking import TrackingCreate, TrackingUpdate
+from src.repositories.tables.event_type import EventTypeRepository
+from src.schemas.tracking import TrackingCreate, TrackingCreateAPI, TrackingUpdate
 
 
 class TrackingRepository(CRUDRepository[Tracking, TrackingCreate, TrackingUpdate]):
     def __init__(self) -> None:
         super().__init__(Tracking)
 
-    async def create_raw(self, session: AsyncSession, obj_in: TrackingCreate) -> Tracking:
+    async def create_raw(self, session: AsyncSession, raw_data: TrackingCreateAPI) -> Tracking:
+        event_type_id: int = await EventTypeRepository().get_description_id(session, raw_data.event_type)
+        obj_in = TrackingCreate(
+            route_item_id=raw_data.route_item_id,
+            event_type_id=event_type_id,
+            event_time=datetime.now(tz=timezone.utc),
+        )
         return await super().create(session, obj_in)
 
     async def get_last_event_description(self, session: AsyncSession, route_id: UUID) -> str | None:
