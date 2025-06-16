@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict
 class _TrackingBase(BaseModel):
     route_item_id: UUID
     event_type: str
-    event_time: datetime | None = None
 
 
 class TrackingCreateAPI(_TrackingBase):
