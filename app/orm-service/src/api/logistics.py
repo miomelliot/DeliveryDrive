@@ -26,7 +26,7 @@ async def get_logistics(
     logger.info("Building logistics for %d orders", len(order_ids))
     logistics: Logistics = await build_logistics(session, order_ids)
     try:
-        async with httpx.AsyncClient(base_url=OSRM_URL, timeout=300.0) as client:
+        async with httpx.AsyncClient(base_url=OSRM_URL, timeout=5.0) as client:
             resp: httpx.Response = await client.post(
                 "/logistics/",
                 json=logistics.model_dump(mode="json"),
