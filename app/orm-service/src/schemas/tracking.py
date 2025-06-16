@@ -9,6 +9,7 @@ class _TrackingBase(BaseModel):
     event_type: str
     event_time: datetime | None = None
 
+
 class TrackingCreate(_TrackingBase):
     pass
 

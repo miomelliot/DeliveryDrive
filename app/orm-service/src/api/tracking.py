@@ -16,7 +16,7 @@ async def create_tracking(
     data: TrackingCreate,
     session: AsyncSession = Depends(get_session_with_user),
 ) -> TrackingRead:
-    tracking: Tracking = await TrackingRepository().create_raw(session, data)
+    tracking: Tracking = await TrackingRepository().create(session, data)
     return TrackingRead.model_validate(tracking)
 
 
@@ -24,6 +24,6 @@ async def create_tracking(
 async def get_last_event(
     route_id: UUID,
     session: AsyncSession = Depends(get_session_with_user),
-) -> OrderLastEvent:
-    description: str | None = await TrackingRepository().(session, order_id)
-    return OrderLastEvent(order_id=order_id, description=description)
+) -> RouteLastEvent:
+    description: str | None = await TrackingRepository().get_last_event_description(session, route_id)
+    return RouteLastEvent(route_id=route_id, description=description)
