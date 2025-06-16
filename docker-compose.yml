@@ -37,6 +37,7 @@ services:
       TZ                  : Europe/Moscow
       JWT_SECRET          : "change-this-in-prod"
       JWT_ALG             : "HS256"
+      OSRM_SERVICE_URL    : http://osrm-service:8000
       ACCESS_TOKEN_TTL_MIN: 43200  # 30 дней
     volumes:
       - ./app/orm-service/static:/app/static
