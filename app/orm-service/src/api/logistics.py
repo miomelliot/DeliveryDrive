@@ -33,10 +33,7 @@ async def get_logistics(
         detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
         raise HTTPException(status_code=502, detail=detail) from exc
 
-    # The OSRM service now returns 200 on success
     if resp.status_code != status.HTTP_200_OK:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
     return cast(dict[str, Any], resp.json())
-
-
