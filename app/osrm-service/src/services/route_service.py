@@ -28,7 +28,7 @@ async def save_routes(
     plans: Sequence[dict[str, object]],
 ) -> list[Route]:
     """Persist routes and create tracking records."""
-    logger.info("Saving %d planned routes", len(plans))
+    logger.info(f"Saving {len(plans)} planned routes")
     scheduled_id: int = await _get_status_id(session, "scheduled")
     created: list[Route] = []
     now: datetime = datetime.now(timezone.utc)
@@ -44,11 +44,7 @@ async def save_routes(
         )
 
         order_ids: list[UUID] = [UUID(o) for o in plan.get("orders", [])]  # type: ignore
-        logger.debug(
-            "Creating route for courier %s with %d orders",
-            courier_id,
-            len(order_ids),
-        )
+        logger.debug(f"Creating route for courier {courier_id} with {len(order_ids)} orders")
         route = Route(
             courier_id=courier_id,
             date=date.today(),
@@ -75,6 +71,6 @@ async def save_routes(
 
         created.append(route)
 
-    logger.info("%d routes saved", len(created))
+    logger.info(f"%{len(created)} routes saved")
 
     return created

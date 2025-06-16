@@ -30,14 +30,10 @@ async def neo4j_session_ctx() -> AsyncIterator[AsyncSession]:
 async def upload_logistics(
     payload: Logistics,
 ) -> dict[str, list[dict[str, Any]]]:
-    logger.info(
-        "Received logistics payload with %d orders and %d couriers",
-        len(payload.orders),
-        len(payload.creates),
-    )
+    logger.info(f"Received logistics payload with {len(payload.orders)} orders and {len(payload.creates)} couriers")
     settings: Settings = get_settings()
     routes: list[dict[str, Any]] = await process_logistics(payload, settings)
-    logger.info("Generated %d routes", len(routes))
+    logger.info(f"Generated {len(routes)} routes")
     return {"routes": routes}
 
 
@@ -46,11 +42,11 @@ async def assign_routes(
     order_ids: list[UUID],
     session: DBSession = Depends(get_session),
 ) -> dict[str, list[str]]:
-    logger.info("Assigning routes for %d orders", len(order_ids))
+    logger.info(f"Assigning routes for {len(order_ids)} orders")
     payload: Logistics = await build_logistics(session, order_ids)
     settings: Settings = get_settings()
     plans: list[dict[str, Any]] = await process_logistics(payload, settings)
     created: list[Route] = await save_routes(session, plans)
     await session.commit()
-    logger.info("Saved %d routes", len(created))
+    logger.info(f"Saved {len(created)} routes")
     return {"routes": [str(r.id) for r in created]}

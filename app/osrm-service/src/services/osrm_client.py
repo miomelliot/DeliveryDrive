@@ -36,9 +36,7 @@ async def fetch_distance_matrix(
 
                 params = {
                     "sources": ";".join(str(k) for k in range(len(src_idx))),
-                    "destinations": ";".join(
-                        str(len(src_idx) + k) for k in range(len(dst_idx))
-                    ),
+                    "destinations": ";".join(str(len(src_idx) + k) for k in range(len(dst_idx))),
                     "annotations": "distance",
                 }
                 logger.debug("Requesting OSRM matrix: %s", url)
@@ -55,5 +53,5 @@ async def fetch_distance_matrix(
                         matrix[s][d] = distances[ii][jj]
 
     duration_total = perf_counter() - start_total
-    logger.debug("Total OSRM time %.2f sec for %d addresses", duration_total, n)
+    logger.debug(f"Total OSRM time {duration_total:2f} sec for {n} addresses")
     return matrix
