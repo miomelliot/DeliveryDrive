@@ -25,5 +25,5 @@ async def upload_logistics(
     neo: AsyncSession = Depends(neo4j_session_ctx),
 ) -> dict[str, list[list[str]]]:
     settings: Settings = get_settings()
-    routes: list[list[str]] = await process_logistics(payload, neo, settings)
+    routes: list[list[str]] = await process_logistics(payload, settings)
     return {"routes": routes}
