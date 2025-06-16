@@ -30,7 +30,7 @@ async def neo4j_session_ctx() -> AsyncIterator[AsyncSession]:
 async def upload_logistics(
     payload: Logistics,
     session: DBSession = Depends(get_session),
-) -> dict[str, list[str]]:
+) -> dict[str, list[dict[str, Any]]]:
     logger.info(
         "Received logistics payload with %d orders and %d couriers",
         len(payload.orders),

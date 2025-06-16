@@ -27,6 +27,7 @@ from src.schemas.logistics import (
 from src.schemas.logistics import (
     TransportType as TransportTypeSchema,
 )
+from src.utils.http_error import NotFoundError
 
 DEFAULT_SERVICE_DURATION_SEC = 1_500  # ~25 minutes
 DEFAULT_COURIER_START: dt_time = dt_time(9)
@@ -48,13 +49,13 @@ async def build_logistics(
     orders_db: Sequence[Order] = (await session.scalars(stmt_orders)).all()
     if len(orders_db) != len(order_ids):
         missing: set[UUID] = set(order_ids) - {o.id for o in orders_db}
-        raise ValueError(f"Orders not found: {', '.join(map(str, missing))}")
+        raise NotFoundError(f"Orders not found: {', '.join(map(str, missing))}")
 
     orders: list[OrderSchema] = []
     for order in orders_db:
         addr: Address | None = order.client.address  # type: ignore
         if addr is None:
-            raise ValueError(f"Order {order.id} has no address")
+            raise NotFoundError(f"Order {order.id} has no address")
 
         weight: float | Literal[0] = sum(item.quantity * item.heater_type.weight for item in order.items)
         orders.append(
@@ -78,7 +79,7 @@ async def build_logistics(
         select(Warehouse).options(joinedload(Warehouse.address)).limit(1)
     )
     if warehouse_db is None:
-        raise ValueError("Warehouse not found")
+        raise NotFoundError("Warehouse not found")
 
     warehouse = AddressRead(
         id=warehouse_db.address.id,
