@@ -19,6 +19,3 @@ class RouteUpdate(BaseModel):
 class RouteRead(_RouteBase):
     id: UUID
     model_config = ConfigDict(from_attributes=True)
-
-
-
