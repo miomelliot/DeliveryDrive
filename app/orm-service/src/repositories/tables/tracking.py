@@ -1,11 +1,8 @@
-from typing import Tuple
-from uuid import UUID
+from datetime import datetime, timezone
 
-from sqlalchemy import Result, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select
 
-from src.db.models import EventType, RouteItem, Tracking
+from src.db.models import Tracking
 from src.repositories.tables.base import CRUDRepository
 from src.schemas.tracking import TrackingCreate, TrackingUpdate
 
@@ -14,31 +11,11 @@ class TrackingRepository(CRUDRepository[Tracking, TrackingCreate, TrackingUpdate
     def __init__(self) -> None:
         super().__init__(Tracking)
 
-    async def create_raw(self, session: AsyncSession, obj_in: TrackingCreate) -> Tracking:
-        return await super().create(session, obj_in)
-
-    async def get_last_event_description(self, session: AsyncSession, route_id: UUID) -> str | None:
-        stmt: Select[Tuple[str]] = (
-            select(EventType.description)
-            .select_from(Tracking)
-            .join(RouteItem, RouteItem.id == Tracking.route_item_id)
-            .join(EventType, EventType.id == Tracking.event_type_id)
-            .where(RouteItem.route_id == route_id)
-            .order_by(Tracking.event_time.desc())
-            .limit(1)
+    async def create_raw(self, session: AsyncSession, raw_data: TrackingCreate) -> Tracking:
+        obj_in = TrackingCreate(
+            route_item_id=raw_data.route_item_id,
+            event_type=raw_data.event_type,
+            event_time=datetime.now(timezone.utc),
         )
-        res: Result[Tuple[str]] = await session.execute(stmt)
-        return res.scalars().first()
 
-    # async def get_last_event_description(self, session: AsyncSession, order_id: UUID) -> str | None:
-    #     stmt: Select[tuple[str]] = (
-    #         select(EventType.description)
-    #         .select_from(Tracking)
-    #         .join(RouteItem, RouteItem.id == Tracking.route_item_id)
-    #         .join(EventType, EventType.id == Tracking.event_type_id)
-    #         .where(RouteItem.order_id == order_id)
-    #         .order_by(Tracking.event_time.desc())
-    #         .limit(1)
-    #     )
-    #     res: Result[tuple[str]] = await session.execute(stmt)
-    #     return res.scalars().first()
+        return await super().create(session, obj_in)
