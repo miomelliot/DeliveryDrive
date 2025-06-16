@@ -4,6 +4,7 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import Settings, get_settings
@@ -22,6 +23,7 @@ async def get_logistics(
     order_ids: list[UUID],
     session: AsyncSession = Depends(get_session_with_user),
 ) -> dict[str, Any]:
+    logger.info("Building logistics for %d orders", len(order_ids))
     logistics: Logistics = await build_logistics(session, order_ids)
     try:
         async with httpx.AsyncClient(base_url=OSRM_URL, timeout=5.0) as client:
@@ -31,9 +33,16 @@ async def get_logistics(
             )
     except httpx.RequestError as exc:
         detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
+        logger.error(detail)
         raise HTTPException(status_code=502, detail=detail) from exc
 
     if resp.status_code != status.HTTP_200_OK:
+        logger.error(
+            "OSRM service returned %s: %s",
+            resp.status_code,
+            resp.text,
+        )
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
+    logger.info("Received routes from OSRM service")
     return cast(dict[str, Any], resp.json())

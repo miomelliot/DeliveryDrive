@@ -38,6 +38,7 @@ async def build_logistics(
     session: AsyncSession,
     order_ids: Sequence[UUID],
 ) -> Logistics:
+    logger.debug("Building logistics for %d orders", len(order_ids))
     stmt_orders: Select[Tuple[Order]] = (
         select(Order)
         .where(Order.id.in_(order_ids))
@@ -49,6 +50,7 @@ async def build_logistics(
     orders_db: Sequence[Order] = (await session.scalars(stmt_orders)).all()
     if len(orders_db) != len(order_ids):
         missing: set[UUID] = set(order_ids) - {o.id for o in orders_db}
+        logger.error("Orders not found: %s", ", ".join(map(str, missing)))
         raise ValueError(f"Orders not found: {', '.join(map(str, missing))}")
 
     orders: list[OrderSchema] = []
@@ -80,7 +82,8 @@ async def build_logistics(
         select(Warehouse).options(joinedload(Warehouse.address)).limit(1)
     )
     if warehouse_db is None:
-        raise NotFoundError("Склад не найден")
+        logger.error("Warehouse not found")
+        raise ValueError("Warehouse not found")
 
     warehouse = AddressRead(
         id=warehouse_db.address.id,
@@ -100,6 +103,7 @@ async def build_logistics(
         .order_by(Transport.id)
     )
     transports_db: Sequence[Transport] = (await session.scalars(stmt_transports)).all()
+    logger.debug("Fetched %d transports", len(transports_db))
 
     creates: list[CreateSchema] = []
     for t in transports_db:
@@ -120,8 +124,11 @@ async def build_logistics(
             )
         )
 
-    return Logistics(
+    logistics = Logistics(
         warehouse=warehouse,
         orders=orders,
         creates=creates,
     )
+
+    logger.debug("Built logistics: %d orders, %d couriers", len(orders), len(creates))
+    return logistics

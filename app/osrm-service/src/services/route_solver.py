@@ -1,6 +1,7 @@
 from datetime import time
 from uuid import UUID
 
+from loguru import logger
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from src.schemas.logistics import Create, Order, Solver
@@ -99,6 +100,7 @@ def solve_vrp(
     creates: list[Create],
     solver_cfg: Solver,
 ) -> list[list[UUID]]:
+    logger.debug("Solving VRP: %d orders, %d vehicles", len(orders), len(creates))
     num_nodes: int = len(distance_matrix)
     manager = pywrapcp.RoutingIndexManager(num_nodes, len(creates), 0)
     routing = pywrapcp.RoutingModel(manager)
@@ -121,6 +123,9 @@ def solve_vrp(
 
     solution = routing.SolveWithParameters(search_params)
     if solution is None:
+        logger.warning("VRP solver returned no solution")
         return []
 
-    return _extract_routes(routing, manager, solution, orders, creates)
+    routes = _extract_routes(routing, manager, solution, orders, creates)
+    logger.debug("VRP solver produced %d routes", len(routes))
+    return routes
