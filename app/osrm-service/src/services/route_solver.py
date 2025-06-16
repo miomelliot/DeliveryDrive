@@ -1,4 +1,3 @@
-import os
 from datetime import time
 from typing import Any
 from uuid import UUID
@@ -162,22 +161,15 @@ def solve_vrp(
     search_params = pywrapcp.DefaultRoutingSearchParameters()
     search_params.time_limit.FromSeconds(solver_cfg.max_runtime_sec)
     search_params.solution_limit = solver_cfg.num_solutions
+
+    if hasattr(search_params, "number_of_search_workers"):
+        search_params.number_of_search_workers = solver_cfg.num_search_workers
+    elif hasattr(search_params, "num_search_workers"):
+        search_params.num_search_workers = solver_cfg.num_search_workers
     search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-
-    threads: int = solver_cfg.threads or min(6, os.cpu_count() or 1)
-
-    if hasattr(search_params, "num_search_workers"):
-        search_params.num_search_workers = threads
-    elif hasattr(search_params, "number_of_workers"):
-        search_params.number_of_workers = threads
-    else:
-        logger.warning("ORTools: поле для потоков не найдено, остаётся 1")
-
-    logger.debug(f"Using {threads} OR-Tools threads")
-
     logger.debug(
         f"Search parameters: time_limit={solver_cfg.max_runtime_sec}, "
-        f"solutions={solver_cfg.num_solutions}, "
+        f"solutions={solver_cfg.num_solutions}, workers={solver_cfg.num_search_workers}, "
         f"strategy=PATH_CHEAPEST_ARC"
     )
 
