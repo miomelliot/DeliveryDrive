@@ -89,7 +89,7 @@ async def save_routes(
         await _create_notifications(
             session,
             [*manager_ids, courier_id],
-            f"Создан маршрут {route.id}",
+            "Создан новый маршрут",
         )
 
         created.append(route)
