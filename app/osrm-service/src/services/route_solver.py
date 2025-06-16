@@ -12,7 +12,7 @@ def solve_vrp(
     creates: List[Create],
     solver_cfg: Solver,
 ) -> List[List[UUID]]:
-    num_nodes = len(distance_matrix)
+    num_nodes: int = len(distance_matrix)
     manager = pywrapcp.RoutingIndexManager(num_nodes, len(creates), 0)
     routing = pywrapcp.RoutingModel(manager)
 

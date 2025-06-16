@@ -1,6 +1,6 @@
-from typing import Dict, Sequence, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
-from neo4j import AsyncSession
+from neo4j import AsyncResult, AsyncSession
 
 from src.schemas.logistics import AddressRead
 
@@ -43,8 +43,8 @@ RETURN a.id AS from_id, b.id AS to_id, r.value AS distance
 
 
 async def fetch_distances(session: AsyncSession, ids: Sequence[str]) -> Dict[Tuple[str, str], float]:
-    result = await session.run(_SELECT_DISTANCES, ids=list(ids))
-    records = await result.values("from_id", "to_id", "distance")
+    result: AsyncResult = await session.run(_SELECT_DISTANCES, ids=list(ids))
+    records: list[list[Any]] = await result.values("from_id", "to_id", "distance")
     return {(f, t): float(d) for f, t, d in records}
 
 
