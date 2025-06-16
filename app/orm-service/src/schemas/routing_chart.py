@@ -28,8 +28,6 @@ class RoutingChartFilter(BaseModel):
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"
 
-    route_id: UUID | None = None
-
     # 📋 Выпадающий фильтр по статусу заказа
     description: str | None = None
 
