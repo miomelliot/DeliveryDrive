@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Sequence, Tuple
+from typing import Tuple
 from uuid import UUID
 
 from sqlalchemy import Result, and_, func, select
@@ -7,11 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
 from src.db.models import EventType, Route, RouteItem, Tracking
+from src.repositories.tables.order import OrderRepository
+from src.schemas.order_detail_read import OrderDetailRead
 from src.schemas.route import RouteItemStatus, RouteRead
+from src.utils.http_error import NotFoundError
 
 
 class RouteRepository:
-    async def list_by_courier(self, session: AsyncSession, courier_id: UUID) -> list[RouteRead]:
+    async def list_by_courier(self, session: AsyncSession, courier_id: UUID) -> RouteRead:
         stmt: Select[Tuple[Route]] = select(Route).where(
             and_(
                 Route.courier_id == courier_id,
@@ -19,8 +22,10 @@ class RouteRepository:
             )
         )
         res: Result[Tuple[Route]] = await session.execute(stmt)
-        routes: Sequence[Route] = res.scalars().all()
-        return [RouteRead.model_validate(r) for r in routes]
+        routes: Route | None = res.scalars().first()
+        if routes is None:
+            NotFoundError("Маршрутный лист не найден")
+        return RouteRead.model_validate(routes)
 
     async def list_items_with_status(self, session: AsyncSession, route_id: UUID) -> list[RouteItemStatus]:
         last_evt = (
@@ -52,4 +57,19 @@ class RouteRepository:
 
         res = await session.execute(stmt)
         rows = res.fetchall()
-        return [RouteItemStatus(id=r[0], order_id=r[1], sequence=r[2], status=r[3]) for r in rows]
+
+        order_repo = OrderRepository()
+
+        result = []
+        for route_item_id, order_id, sequence, status in rows:
+            order: OrderDetailRead = await order_repo.get_detail(session, order_id)
+            result.append(
+                RouteItemStatus(
+                    id=route_item_id,
+                    order=order,
+                    sequence=sequence,
+                    status=status,
+                )
+            )
+
+        return result

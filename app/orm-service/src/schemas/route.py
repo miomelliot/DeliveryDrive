@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from src.schemas.order_detail_read import OrderDetailRead
+
 
 class RouteRead(BaseModel):
     id: UUID
@@ -15,7 +17,7 @@ class RouteRead(BaseModel):
 
 class RouteItemStatus(BaseModel):
     id: UUID
-    order_id: UUID | None
+    order: OrderDetailRead
     sequence: int
     status: str | None = None
     model_config = ConfigDict(from_attributes=True)

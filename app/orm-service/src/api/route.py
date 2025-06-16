@@ -10,13 +10,12 @@ from src.schemas.route import RouteItemStatus, RouteRead
 router = APIRouter(prefix="/route", tags=["Route"])
 
 
-@router.get("/courier/{courier_id}", response_model=list[RouteRead])
+@router.get("/courier/{courier_id}", response_model=RouteRead)
 async def list_routes_for_courier(
     courier_id: UUID,
     session: AsyncSession = Depends(get_session_with_user),
-) -> list[RouteRead]:
-    repo = RouteRepository()
-    return await repo.list_by_courier(session, courier_id)
+) -> RouteRead:
+    return await RouteRepository().list_by_courier(session, courier_id)
 
 
 @router.get("/{route_id}/items", response_model=list[RouteItemStatus])
