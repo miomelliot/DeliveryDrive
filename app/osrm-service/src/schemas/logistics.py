@@ -20,7 +20,7 @@ class Solver(BaseModel):
     num_solutions: int = 1
     allow_waiting: bool = True
     time_window_penalty: int = 3
-    num_search_workers: int = 1
+    num_search_workers: int = 6
 
 
 class TransportType(BaseModel):
