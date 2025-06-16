@@ -34,7 +34,7 @@ async def get_logistics(
                 json=logistics.model_dump(mode="json"),
             )
     except httpx.RequestError as exc:
-        detail = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
+        detail: str = f"Failed to reach OSRM service at {OSRM_URL}: {exc}"
         logger.error(detail)
         raise HTTPException(status_code=502, detail=detail) from exc
 
