@@ -33,7 +33,8 @@ async def get_logistics(
     except httpx.RequestError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    if resp.status_code != status.HTTP_202_ACCEPTED:
+    # The OSRM service now returns 200 on success
+    if resp.status_code != status.HTTP_200_OK:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
     return cast(dict[str, Any], resp.json())
