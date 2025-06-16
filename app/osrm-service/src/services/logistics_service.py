@@ -1,3 +1,4 @@
+# src/services/logistics_service.py
 from typing import Any, Dict, Generator, List, Sequence, Tuple
 
 from loguru import logger
@@ -119,15 +120,13 @@ async def process_logistics(payload: Logistics, settings: Settings) -> List[dict
 
     result: List[dict[str, Any]] = []
     for idx, route in enumerate(routes):
-        result.append(
-            {
-                "courier_id": str(payload.creates[idx].courier_id),
-                "time_window": [
-                    payload.creates[idx].time_window[0].isoformat(),
-                    payload.creates[idx].time_window[1].isoformat(),
-                ],
-                "orders": [str(order_id) for order_id in route],
-            }
-        )
+        result.append({
+            "courier_id": str(payload.creates[idx].courier_id),
+            "time_window": [
+                payload.creates[idx].time_window[0].isoformat(),
+                payload.creates[idx].time_window[1].isoformat(),
+            ],
+            "orders": [str(order_id) for order_id in route],
+        })
 
     return result

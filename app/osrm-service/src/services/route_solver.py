@@ -1,3 +1,4 @@
+# src/services/route_solver.py
 from datetime import time
 from typing import Any
 from uuid import UUID
@@ -12,7 +13,6 @@ def _to_seconds(value: time) -> int:
     return value.hour * 3600 + value.minute * 60 + value.second
 
 
-# ───────────────────────── Capacity ─────────────────────────
 def _add_capacity_dimension(
     routing: pywrapcp.RoutingModel,
     manager: pywrapcp.RoutingIndexManager,
@@ -41,7 +41,6 @@ def _add_capacity_dimension(
     logger.debug("Capacity dimension added")
 
 
-# ───────────────────────── Time (soft windows) ─────────────────────────
 def _add_time_dimension(
     routing: pywrapcp.RoutingModel,
     manager: pywrapcp.RoutingIndexManager,
@@ -78,7 +77,6 @@ def _add_time_dimension(
 
     penalty: Any | int = getattr(solver_cfg, "time_window_penalty", 10)
 
-    # ---- orders --------------------------------------------------------
     for i, order in enumerate(orders, start=1):
         idx = manager.NodeToIndex(i)
         start = _to_seconds(order.time_window[0])
@@ -91,7 +89,6 @@ def _add_time_dimension(
 
         logger.debug(f"Order {order.order_id} time window {start}-{end} with soft penalty {penalty}/sec")
 
-    # ---- vehicles (start/end) -----------------------------------------
     for vid, cr in enumerate(creates):
         start = _to_seconds(cr.time_window[0])
         end = _to_seconds(cr.time_window[1])
@@ -105,7 +102,6 @@ def _add_time_dimension(
     logger.debug("Time dimension added")
 
 
-# ───────────────────────── Extract routes ─────────────────────────
 def _extract_routes(
     routing: pywrapcp.RoutingModel,
     manager: pywrapcp.RoutingIndexManager,
@@ -131,7 +127,6 @@ def _extract_routes(
     return routes
 
 
-# ───────────────────────── Solver orchestrator ─────────────────────────
 def solve_vrp(
     distance_matrix: list[list[float]],
     orders: list[Order],
