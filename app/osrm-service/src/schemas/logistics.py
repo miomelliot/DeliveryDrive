@@ -3,9 +3,16 @@ from datetime import time
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from src.schemas.address import AddressRead
+
+class AddressRead(BaseModel):
+    id: UUID
+    city: str
+    street: str | None
+    building: str
+    lat: float = 0.0
+    lon: float = 0.0
 
 
 class Solver(BaseModel):
@@ -43,3 +50,5 @@ class Logistics(BaseModel):
     def check_time_window(self, v: list[time]) -> list[time]:
         assert len(v) == 2, "time_window должен содержать [start, end]"
         return v
+
+    model_config = ConfigDict(from_attributes=True)
