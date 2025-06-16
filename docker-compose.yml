@@ -103,8 +103,8 @@ services:
         - neo4j_data:/data
         - neo4j_logs:/logs
       ports:
-        - "7474:7474"     # UI
-        - "7687:7687"     # Bolt
+        - "7474:7474"
+        - "7687:7687"
       healthcheck:
         test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-changeme}", "RETURN 1"]
         interval: 30s
