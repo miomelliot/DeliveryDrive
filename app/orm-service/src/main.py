@@ -15,7 +15,6 @@ from src.api import (
     logistics,
     order,
     order_chart,
-    route_sheet_chart,
     routing_chart,
     tracking_chart,
     user,
