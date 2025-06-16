@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
@@ -7,11 +6,11 @@ from src.schemas.logistics import Create, Order, Solver
 
 
 def solve_vrp(
-    distance_matrix: List[List[float]],
-    orders: List[Order],
-    creates: List[Create],
+    distance_matrix: list[list[float]],
+    orders: list[Order],
+    creates: list[Create],
     solver_cfg: Solver,
-) -> List[List[UUID]]:
+) -> list[list[UUID]]:
     num_nodes: int = len(distance_matrix)
     manager = pywrapcp.RoutingIndexManager(num_nodes, len(creates), 0)
     routing = pywrapcp.RoutingModel(manager)
@@ -24,8 +23,8 @@ def solve_vrp(
     transit_index = routing.RegisterTransitCallback(distance_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_index)
 
-    demands: List[int] = [0] + [int(o.weight) for o in orders]
-    capacities: List[int] = [int(c.transport_type.capacity) for c in creates]
+    demands: list[int] = [0] + [int(o.weight) for o in orders]
+    capacities: list[int] = [int(c.transport_type.capacity) for c in creates]
 
     def demand_callback(index: int) -> int:
         node = int(manager.IndexToNode(index))
@@ -49,10 +48,10 @@ def solve_vrp(
     if solution is None:
         return []
 
-    routes: List[List[UUID]] = []
+    routes: list[list[UUID]] = []
     for vehicle_id in range(len(creates)):
         index = routing.Start(vehicle_id)
-        vehicle_route: List[UUID] = []
+        vehicle_route: list[UUID] = []
         while not routing.IsEnd(index):
             node = manager.IndexToNode(index)
             if node != 0:
