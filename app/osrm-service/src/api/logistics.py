@@ -2,12 +2,13 @@
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from fastapi import APIRouter, BackgroundTasks, status
+from fastapi import APIRouter, Depends, status
 from neo4j._async.work.session import AsyncSession
 
+from src.core.config import get_settings
 from src.db.graph import get_neo4j_session
 from src.schemas.logistics import Logistics
-from src.services.logistics_service import ingest_addresses
+from src.services.logistics_service import process_logistics
 
 router = APIRouter(prefix="/logistics", tags=["Logistics"])
 
@@ -18,15 +19,11 @@ async def neo4j_session_ctx() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-async def _background_ingest(payload: Logistics) -> None:
-    async with neo4j_session_ctx() as neo:
-        await ingest_addresses(payload, neo)
-
-
-@router.post("/", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/", status_code=status.HTTP_200_OK)
 async def upload_logistics(
     payload: Logistics,
-    background: BackgroundTasks,
-) -> dict[str, str]:
-    background.add_task(_background_ingest, payload)
-    return {"detail": f"{len(payload.orders)} orders accepted"}
+    neo: AsyncSession = Depends(neo4j_session_ctx),
+) -> dict[str, list[list[str]]]:
+    settings = get_settings()
+    routes = await process_logistics(payload, neo, settings)
+    return {"routes": routes}

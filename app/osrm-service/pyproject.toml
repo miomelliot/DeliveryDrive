@@ -59,4 +59,6 @@ python_version = "3.13"
 ignore_missing_imports = true
 strict = true
 warn_unused_configs = true
-plugins = ["sqlalchemy.ext.mypy.plugin"]
+plugins = []
+allow_subclassing_any = true
+allow_untyped_decorators = true

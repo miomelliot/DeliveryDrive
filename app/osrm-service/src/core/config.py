@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     port: int = Field(5432, alias="POSTGRES_PORT")
     db: str = Field("postgres", alias="POSTGRES_DB")
 
+    # -- OSRM -----------------------------------------------------------------
+    osrm_url: str = Field("http://osrm-backend:5000", alias="OSRM_URL")
+
     # -- Neo4j ------------------------------------------------------------------
     neo4j_user: str = Field("neo4j", alias="NEO4J_USER")
     neo4j_password: str = Field("neo4j", alias="NEO4J_PASSWORD")
@@ -53,4 +56,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Синглтон метод"""
-    return Settings()  # type: ignore
+    return Settings()
