@@ -20,6 +20,7 @@ class Solver(BaseModel):
     num_solutions: int = 1
     allow_waiting: bool = True
     time_window_penalty: int = 3
+    threads: int | None = None
 
 
 class TransportType(BaseModel):

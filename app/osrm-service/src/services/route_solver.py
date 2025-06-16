@@ -1,3 +1,4 @@
+import os
 from datetime import time
 from typing import Any
 from uuid import UUID
@@ -162,9 +163,15 @@ def solve_vrp(
     search_params.time_limit.FromSeconds(solver_cfg.max_runtime_sec)
     search_params.solution_limit = solver_cfg.num_solutions
     search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    
+    threads: int = solver_cfg.threads or min(6, os.cpu_count() or 1)
+    search_params.number_of_threads = threads
+    logger.debug(f"Using {threads} OR-Tools threads")
+
     logger.debug(
         f"Search parameters: time_limit={solver_cfg.max_runtime_sec}, "
-        f"solutions={solver_cfg.num_solutions}, strategy=PATH_CHEAPEST_ARC"
+        f"solutions={solver_cfg.num_solutions}, "
+        f"strategy=PATH_CHEAPEST_ARC"
     )
 
     logger.debug("Starting solver")
