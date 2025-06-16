@@ -15,7 +15,7 @@ from src.api import (
     logistics,
     order,
     order_chart,
-    route_chart,
+    route_sheet_chart,
     routing_chart,
     tracking_chart,
     user,
@@ -67,4 +67,3 @@ app.include_router(routing_chart.router)
 app.include_router(tracking_chart.router)
 app.include_router(equipment_chart.router)
 app.include_router(invoice_chart.router)
-app.include_router(route_chart.router)
