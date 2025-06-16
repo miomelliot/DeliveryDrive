@@ -22,13 +22,6 @@ def _distinct_addresses(payload: Logistics) -> Generator[AddressRead, Any, None]
                 yield addr
 
 
-async def ingest_addresses(payload: Logistics) -> None:
-    addresses: List[AddressRead] = [payload.warehouse]
-    addresses.extend(list(_distinct_addresses(payload)))
-    async with get_neo4j_session() as session:
-        await upsert_addresses(session, addresses)
-
-
 async def _ensure_distances(
     addresses: List[AddressRead],
     addr_ids: List[str],
