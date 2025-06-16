@@ -2,11 +2,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies.auth import get_current_user
 from src.dependencies.db import get_session_with_user
 from src.repositories.charts.invoice_chart import InvoiceChartRepository
-from src.schemas.auth import CurrentUser
-from src.schemas.invoice_chart import InvoiceChartFilter, InvoiceChartRead, InvoiceWidgetRead
+from src.schemas.invoice_chart import InvoiceChartFilter, InvoiceChartRead
 
 router = APIRouter(prefix="/charts/invoice", tags=["Invoice Chart"])
 
@@ -15,16 +13,5 @@ router = APIRouter(prefix="/charts/invoice", tags=["Invoice Chart"])
 async def get_invoice_chart(
     filters: InvoiceChartFilter = Depends(),
     session: AsyncSession = Depends(get_session_with_user),
-    current_user: CurrentUser = Depends(get_current_user),
 ) -> list[InvoiceChartRead]:
-    repo = InvoiceChartRepository(session)
-    return await repo.get_chart(filters)
-
-
-@router.get("/widget", response_model=InvoiceWidgetRead)
-async def get_invoice_widget(
-    session: AsyncSession = Depends(get_session_with_user),
-    current_user: CurrentUser = Depends(get_current_user),
-) -> InvoiceWidgetRead:
-    repo = InvoiceChartRepository(session)
-    return await repo.get_widget()
+    return await InvoiceChartRepository().get_chart(session, filters)

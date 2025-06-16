@@ -1,23 +1,15 @@
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 WORKDIR /app
-ENV TZ=Europe/Moscow \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    PYTHONUNBUFFERED=1
+ENV TZ=Europe/Moscow UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-# Копируем только то, что нужно для зависимостей
-COPY app/orm-server/pyproject.toml .
-COPY app/orm-server/uv.lock .
 
-# Устанавливаем зависимости (с проектом!), без dev-зависимостей
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
-# ТУТ УБРАЛИ --no-install-project, UV поставил и твой пакет — плагин-grpc отработал
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
-# Теперь копируем код
-COPY app/orm-server/src ./src
-RUN mkdir -p ./static/icons
+COPY src ./src
 
 ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uv", "run", "src/run_grpc.py"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

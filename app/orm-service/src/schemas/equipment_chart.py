@@ -35,6 +35,9 @@ class EquipmentChartFilter(BaseModel):
     ] = "id"
     order_dir: Literal["asc", "desc"] = "asc"
 
+    # 🔽 Выпадающий фильтр по имени и описанию статуса
+    status: Literal["В аренде", "На обслуживании", "Доступно", "Списано"] | None = None
+
     # 🔽 Фильтрация по диапазону дат (логика BETWEEN)
     date_start: date | None = None
     date_end: date | None = None

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     host: str = Field("localhost", alias="POSTGRES_HOST")
     port: int = Field(5432, alias="POSTGRES_PORT")
     db: str = Field("postgres", alias="POSTGRES_DB")
+    osrm_service_url: str = Field("http://osrm-service:8000", alias="OSRM_SERVICE_URL")
 
     # --- App / Debug ----------------------------------------------
     debug: bool = Field(False, alias="DEBUG")

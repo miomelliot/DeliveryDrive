@@ -40,7 +40,18 @@ class OrderChartFilter(BaseModel):
     order_dir: Literal["asc", "desc"] = "asc"
 
     # 🔽 Выпадающий фильтр по имени и описанию статуса
-    status: str | None = None
+    status: (
+        Literal[
+            "Новый",
+            "Запланирован",
+            "В доставке",
+            "В аренде",
+            "Завершён",
+            "Отменён",
+            "В обработке",
+        ]
+        | None
+    ) = None
 
     # 🔽 Фильтрация по диапазону времени окна
     window_start_from: time | None = None

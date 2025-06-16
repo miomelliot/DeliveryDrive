@@ -1,7 +1,6 @@
 # src/db/models.py
 from datetime import date as dt_date
 from datetime import datetime, time
-from datetime import datetime as dt_datetime
 from datetime import time as dt_time
 from datetime import timezone as tz
 from decimal import Decimal
@@ -39,7 +38,7 @@ def uuid_pk() -> Mapped[UUID]:
     )
 
 
-# ──────────────── Reference ────────────────
+# ---------------- Reference ----------------
 class BaseLookup(Base):
     __abstract__ = True
 
@@ -56,20 +55,44 @@ class OrderStatus(BaseLookup):
     __tablename__ = "order_status"
     id: Mapped[int] = mapped_column("status_id", Integer, primary_key=True, autoincrement=True)
 
+    orders: Mapped[list["Order"]] = relationship(
+        back_populates="status",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
 
 class EquipmentStatus(BaseLookup):
     __tablename__ = "equipment_status"
     id: Mapped[int] = mapped_column("equipment_status_id", Integer, primary_key=True, autoincrement=True)
+
+    equipment: Mapped[list["Equipment"]] = relationship(
+        back_populates="status",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class InvoiceStatus(BaseLookup):
     __tablename__ = "invoice_status"
     id: Mapped[int] = mapped_column("invoice_status_id", Integer, primary_key=True, autoincrement=True)
 
+    invoices: Mapped[list["Invoice"]] = relationship(
+        back_populates="status",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
 
 class EventType(BaseLookup):
     __tablename__ = "event_type"
     id: Mapped[int] = mapped_column("event_type_id", Integer, primary_key=True, autoincrement=True)
+
+    trackings: Mapped[list["Tracking"]] = relationship(
+        back_populates="event_type",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class Role(Base):
@@ -95,6 +118,12 @@ class HeaterType(Base):
     price: Mapped[float] = mapped_column(Float)
     weight: Mapped[float] = mapped_column(Float)
 
+    equipment: Mapped[list["Equipment"]] = relationship(
+        back_populates="heater_type",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
 
 class TransportType(Base):
     __tablename__ = "transport_type"
@@ -104,7 +133,7 @@ class TransportType(Base):
     capacity: Mapped[float] = mapped_column(Float)
 
 
-# ──────────────── Users ────────────────
+# ---------------- Users ----------------
 class User(Base):
     __tablename__ = "user"
 
@@ -140,7 +169,7 @@ class User(Base):
     )
 
 
-# ─────────────── Address / Warehouse ───────────────
+# --------------- Address / Warehouse ---------------
 class Address(Base):
     __tablename__ = "address"
     id: Mapped[UUID] = uuid_pk()
@@ -159,7 +188,7 @@ class Warehouse(Base):
     address: Mapped[Address] = relationship()
 
 
-# ─────────────── Client / Order ───────────────
+# --------------- Client / Order ---------------
 class Client(Base):
     __tablename__ = "client"
     id: Mapped[UUID] = uuid_pk()
@@ -174,7 +203,7 @@ class Order(Base):
     __tablename__ = "order"
     id: Mapped[UUID] = uuid_pk()
     client_id: Mapped[UUID] = mapped_column(ForeignKey(Client.id, ondelete="CASCADE"))
-    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     window_start: Mapped[dt_time] = mapped_column(Time, default=time(9, 0))
     window_end: Mapped[dt_time] = mapped_column(Time, default=time(21, 0))
     rent_start: Mapped[dt_date] = mapped_column(Date)
@@ -183,7 +212,7 @@ class Order(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     client: Mapped[Client] = relationship()
-    status: Mapped[OrderStatus] = relationship()
+    status: Mapped[OrderStatus] = relationship(back_populates="orders")
 
     items: Mapped[list["OrderItem"]] = relationship(
         back_populates="order",
@@ -217,7 +246,7 @@ class Contract(Base):
     order: Mapped[Order] = relationship(back_populates="contract")
 
 
-# ─────────────── Equipment ───────────────
+# --------------- Equipment ---------------
 class Equipment(Base):
     __tablename__ = "equipment"
     id: Mapped[UUID] = uuid_pk()
@@ -227,10 +256,11 @@ class Equipment(Base):
     warehouse_id: Mapped[UUID] = mapped_column(ForeignKey(Warehouse.id, ondelete="SET NULL"))
     current_address_id: Mapped[UUID] = mapped_column(ForeignKey(Address.id, ondelete="SET NULL"))
 
-    heater_type: Mapped[HeaterType] = relationship()
-    status: Mapped[EquipmentStatus] = relationship()
+    heater_type: Mapped[HeaterType] = relationship(back_populates="equipment")
+    status: Mapped[EquipmentStatus] = relationship(back_populates="equipment")
     warehouse: Mapped[Warehouse] = relationship()
     current_address: Mapped[Address] = relationship()
+
     maintenance: Mapped[list["Maintenance"]] = relationship(
         back_populates="equipment",
         cascade="all, delete-orphan",
@@ -247,7 +277,7 @@ class Maintenance(Base):
     equipment: Mapped[Equipment] = relationship(back_populates="maintenance")
 
 
-# ───────────── OrderItem ─────────────
+# ------------- OrderItem -------------
 class OrderItem(Base):
     __tablename__ = "order_item"
     id: Mapped[UUID] = uuid_pk()
@@ -259,14 +289,14 @@ class OrderItem(Base):
     heater_type: Mapped[HeaterType] = relationship()
 
 
-# ─────────────── Logistics ───────────────
+# --------------- Logistics ---------------
 class Route(Base):
     __tablename__ = "route"
     id: Mapped[UUID] = uuid_pk()
     courier_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     date: Mapped[dt_date] = mapped_column(Date)
-    planned_start: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
-    planned_end: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
+    planned_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    planned_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
     courier: Mapped[User] = relationship(back_populates="routes")
     items: Mapped[list["RouteItem"]] = relationship(
@@ -293,7 +323,9 @@ class Tracking(Base):
     id: Mapped[UUID] = uuid_pk()
     route_item_id: Mapped[UUID] = mapped_column(ForeignKey(RouteItem.id, ondelete="CASCADE"))
     event_type_id: Mapped[int] = mapped_column(ForeignKey(EventType.id))
-    event_time: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True))
+    event_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    event_type: Mapped[EventType] = relationship(back_populates="trackings")
 
 
 class Transport(Base):
@@ -306,7 +338,7 @@ class Transport(Base):
     transport_type: Mapped[TransportType] = relationship()
 
 
-# ─────────────── Finance ───────────────
+# --------------- Finance ---------------
 class Invoice(Base):
     __tablename__ = "invoice"
     id: Mapped[UUID] = uuid_pk()
@@ -317,16 +349,16 @@ class Invoice(Base):
     paid_at: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
 
     order: Mapped[Order] = relationship(back_populates="invoices")
-    status: Mapped[InvoiceStatus] = relationship()
+    status: Mapped[InvoiceStatus] = relationship(back_populates="invoices")
 
 
-# ─────────── History / Audit ───────────
+# ----------- History / Audit -----------
 class OrderHistory(Base):
     __tablename__ = "order_history"
     __table_args__ = (UniqueConstraint("order_id", "timestamp"),)
     id: Mapped[UUID] = uuid_pk()
     order_id: Mapped[UUID] = mapped_column(ForeignKey(Order.id, ondelete="CASCADE"))
-    timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     previous_status_id: Mapped[int | None] = mapped_column(ForeignKey(OrderStatus.id), nullable=True)
     new_status_id: Mapped[int] = mapped_column(ForeignKey(OrderStatus.id))
     user_id: Mapped[UUID] = mapped_column(
@@ -350,18 +382,18 @@ class AuditLog(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="SET NULL"))
     event: Mapped[str] = mapped_column(Text)
     target_table: Mapped[str] = mapped_column(Text)
-    timestamp: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     old_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     new_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
-# ─────────────── Notifications ───────────────
+# --------------- Notifications ---------------
 class Notification(Base):
     __tablename__ = "notification"
     id: Mapped[UUID] = uuid_pk()
     user_id: Mapped[UUID] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     text: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(tz.utc))
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="notifications")

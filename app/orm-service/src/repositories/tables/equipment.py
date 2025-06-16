@@ -1,6 +1,6 @@
 # src/repositories/tables/equipment.py
-
 from typing import Sequence, Tuple
+from uuid import UUID
 
 from sqlalchemy import Result, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +28,7 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
                 weight=raw_data.weight,
             ),
         )
-        equipment_status_id: int = await EquipmentStatusRepository().get_id(session, "available")
+        equipment_status_id: int = await EquipmentStatusRepository().get_code_id(session, "available")
         warehouse: Sequence[Warehouse] = await WarehouseRepository().list(session)
         obj_in = EquipmentCreate(
             heater_type_id=heater_type.id,
@@ -51,8 +51,8 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
         model: str,
     ) -> list[Equipment]:
         status_repo = EquipmentStatusRepository()
-        old_status_id: int = await status_repo.get_id(session, old_status_code)
-        new_status_id: int = await status_repo.get_id(session, new_status_code)
+        old_status_id: int = await status_repo.get_code_id(session, old_status_code)
+        new_status_id: int = await status_repo.get_code_id(session, new_status_code)
 
         stmt: Select[Tuple[Equipment]] = (
             select(Equipment)
@@ -71,3 +71,8 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
 
         await session.flush()
         return list(equipment_list)
+
+    async def update_status(self, session: AsyncSession, id: UUID | int, status: str) -> Equipment:
+        equipment_status_id: int = await EquipmentStatusRepository().get_code_id(session, status)
+        obj_in = EquipmentUpdate(equipment_status_id=equipment_status_id)
+        return await super().update_by_id(session, id, obj_in)

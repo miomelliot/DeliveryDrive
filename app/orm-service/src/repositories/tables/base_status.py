@@ -11,14 +11,25 @@ from src.utils.http_error import ConflictError
 class HasIdAndCode(Protocol):
     id: Any
     code: Any
+    description: Any
 
 
 class BaseStatusRepository[ModelT: HasIdAndCode](CRUDRepository[ModelT, BaseLookupCreate, BaseLookupUpdate]):
     def __init__(self, model: type[ModelT]) -> None:
         super().__init__(model)
 
-    async def get_id(self, session: AsyncSession, code: str) -> int:
+    async def get_code_id(self, session: AsyncSession, code: str) -> int:
         stmt: Select[Tuple[int]] = select(self.model.id).where(self.model.code == code)
+        res: Result[Tuple[int]] = await session.execute(stmt)
+        instance: int | None = res.scalars().first()
+
+        if instance is None:
+            raise ConflictError("Объект с таким кодом не найден")
+
+        return instance
+
+    async def get_description_id(self, session: AsyncSession, description: str) -> int:
+        stmt: Select[Tuple[int]] = select(self.model.id).where(self.model.description == description)
         res: Result[Tuple[int]] = await session.execute(stmt)
         instance: int | None = res.scalars().first()
 

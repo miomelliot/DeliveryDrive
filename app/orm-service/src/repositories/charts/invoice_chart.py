@@ -17,10 +17,7 @@ from src.schemas.invoice_chart import (
 
 
 class InvoiceChartRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self.session: AsyncSession = session
-
-    async def get_chart(self, filters: InvoiceChartFilter) -> list[InvoiceChartRead]:
+    async def get_chart(self, session: AsyncSession, filters: InvoiceChartFilter) -> list[InvoiceChartRead]:
         # 📌 Выражения
         days_expr: Label[Any] = (cast(Order.rent_end, Date) - cast(Order.rent_start, Date)).label("days_rent")
 
@@ -36,7 +33,7 @@ class InvoiceChartRepository:
 
         stmt: Select[Tuple[UUID, date, str, int, float, Decimal, str]] = (
             select(
-                Invoice.id,
+                Order.id,
                 Order.rent_start,
                 Client.phone,
                 days_expr,
@@ -44,6 +41,7 @@ class InvoiceChartRepository:
                 total_income_expr,
                 InvoiceStatus.description.label("status"),
             )
+            .select_from(Invoice)
             .join(Order, Order.id == Invoice.order_id)
             .join(Client, Client.id == Order.client_id)
             .join(OrderItem, OrderItem.order_id == Order.id)
@@ -51,6 +49,7 @@ class InvoiceChartRepository:
             .join(InvoiceStatus, Invoice.invoice_status_id == InvoiceStatus.id)
             .group_by(
                 Invoice.id,
+                Order.id,
                 Order.rent_start,
                 Order.rent_end,
                 Client.phone,
@@ -61,11 +60,7 @@ class InvoiceChartRepository:
         # 🔍 Поиск
         if filters.search:
             like: str = f"%{filters.search.lower()}%"
-            stmt = stmt.where(
-                func.lower(Client.phone).like(like)
-                | cast(Invoice.amount, String).like(like)
-                | func.lower(InvoiceStatus.description).like(like)
-            )
+            stmt = stmt.where(func.lower(Client.phone).like(like) | cast(Invoice.amount, String).like(like))
 
         # 📋 Фильтрация по статусу
         if filters.status:
@@ -76,10 +71,6 @@ class InvoiceChartRepository:
             stmt = stmt.where(Order.rent_start >= filters.rent_date_start)
         if filters.rent_date_end:
             stmt = stmt.where(Order.rent_start <= filters.rent_date_end)
-
-        # ✅ Только активные счета
-        if filters.only_active:
-            stmt = stmt.where(InvoiceStatus.code == "issued")
 
         # ↕️ Сортировка
         field_map = {
@@ -97,19 +88,19 @@ class InvoiceChartRepository:
         # 📄 Пагинация
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
-        res: Result[Tuple[UUID, date, str, int, float, Decimal, str]] = await self.session.execute(stmt)
+        res: Result[Tuple[UUID, date, str, int, float, Decimal, str]] = await session.execute(stmt)
         rows: Sequence[RowMapping] = res.mappings().all()
 
         return [InvoiceChartRead.model_validate(row) for row in rows]
 
-    async def get_widget(self) -> InvoiceWidgetRead:
+    async def get_widget(self, session: AsyncSession) -> InvoiceWidgetRead:
         stmt: Select[Tuple[int, float, float]] = select(
             func.count().filter(InvoiceStatus.code == "issued").label("total_active_contracts"),
             func.coalesce(func.sum(Invoice.amount), 0).label("potential_income"),
             func.coalesce(func.avg(Invoice.amount), 0).label("monthly_average"),
         ).join(InvoiceStatus, Invoice.invoice_status_id == InvoiceStatus.id)
 
-        res: Result[Tuple[int, float, float]] = await self.session.execute(stmt)
+        res: Result[Tuple[int, float, float]] = await session.execute(stmt)
         row: RowMapping = res.one()._mapping
 
         return InvoiceWidgetRead(

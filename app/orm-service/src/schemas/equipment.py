@@ -18,11 +18,11 @@ class EquipmentCreate(_EquipmentBase):
 
 
 class EquipmentUpdate(BaseModel):
-    heater_type_id: int | None
-    serial_number: str | None
-    equipment_status_id: int | None
-    warehouse_id: UUID | None
-    current_address_id: UUID | None
+    heater_type_id: int | None = None
+    serial_number: str | None = None
+    equipment_status_id: int | None = None
+    warehouse_id: UUID | None = None
+    current_address_id: UUID | None = None
 
 
 class EquipmentRead(_EquipmentBase):

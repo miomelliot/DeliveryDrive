@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import Contract
 from src.dependencies.db import get_session_with_user
 from src.repositories.tables.contract import ContractRepository
-from src.utils.http_error import GoneError
 
 router = APIRouter(prefix="/contract", tags=["Contract"])
 
@@ -33,9 +32,6 @@ async def download_contract_by_order(
     contract: Contract = await repo.get_by_order(session, order_id)
 
     full_path: Path = Path("/app") / contract.file_path
-    if not full_path.exists():
-        await repo.delete(session, contract.id)
-        raise GoneError("Файл договора по заказу был удалён")
 
     return FileResponse(path=full_path, filename=full_path.name, media_type="application/octet-stream")
 

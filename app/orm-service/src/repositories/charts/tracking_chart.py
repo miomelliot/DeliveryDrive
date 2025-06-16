@@ -38,8 +38,7 @@ class TrackingChartRepository:
         if row is None:
             raise ValueError(f"Route with id={route_id} not found")
 
-        # 📦 Применяем фильтр по маршруту и получаем заказы через RoutingChartRepository
-        filters.route_id = route_id
+        # 📦 Применяем фильтр по маршруту и оплучаем заказы через RoutingChartRepository
         orders: list[RoutingChartRead] = list(await self.routing_repo.get_chart(filters))
 
         return TrackingChart(

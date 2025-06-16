@@ -20,10 +20,9 @@ class InvoiceCreateRaw(_InvoiceBase):
 
 
 class InvoiceUpdate(BaseModel):
-    amount: Decimal | None
-    invoice_status_id: int | None
-    issued_at: date | None
-    paid_at: date | None
+    invoice_status_id: int | None = None
+    issued_at: date | None = None
+    paid_at: date | None = None
 
 
 class InvoiceRead(_InvoiceBase):

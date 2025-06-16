@@ -9,7 +9,7 @@ from sqlalchemy import Result, Select, delete, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import AuditLog
-from src.utils.http_error import ConflictError
+from src.utils.http_error import NotFoundError
 
 
 class HasId(Protocol):
@@ -65,7 +65,7 @@ class CRUDRepository[
         instance: ModelT | None = res.scalars().first()
 
         if instance is None:
-            raise ConflictError()
+            raise NotFoundError()
 
         return instance
 

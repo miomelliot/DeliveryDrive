@@ -16,8 +16,9 @@ class ClientCreate(_ClientBase):
 
 
 class ClientUpdate(BaseModel):
-    name: str | None
-    phone: str | None
+    name: str | None = None
+    phone: str | None = None
+    address_id: UUID | None = None
 
 
 class ClientRead(_ClientBase):

@@ -7,8 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Order
 from src.dependencies.db import get_session_with_user
-from src.repositories.charts.order_chart import OrderChartRepository
-from src.repositories.charts.order_detail_read import OrderDetailRepository
 from src.repositories.tables.order import OrderRepository
 from src.schemas.order import OrderCreateAPI
 from src.schemas.order_detail_read import OrderDetailRead, OrderDetailUpdate
@@ -30,17 +28,17 @@ async def get_order_detail(
     order_id: UUID = Path(..., description="ID заказа"),
     session: AsyncSession = Depends(get_session_with_user),
 ) -> OrderDetailRead:
-    return await OrderDetailRepository(session).get_detail(order_id)
+    return await OrderRepository().get_detail(session, order_id)
 
 
-@router.patch("/{order_id}")
+@router.patch("/{order_id}", response_model=OrderDetailRead)
 async def update_order_detail(
     order_id: UUID = Path(..., description="ID заказа"),
     data: OrderDetailUpdate = Body(...),
     session: AsyncSession = Depends(get_session_with_user),
-) -> dict[str, str]:
-    await OrderDetailRepository(session).update_detail(order_id, data)
-    return {"detail": "Заказ обновлён"}
+) -> OrderDetailRead:
+    await OrderRepository().update_detail(session, order_id, data)
+    return await OrderRepository().get_detail(session, order_id)
 
 
 @router.delete("/{order_id}")
@@ -52,7 +50,6 @@ async def delete_order(
     return {"detail": "Заказ удалён"}
 
 
-# ────────────────────────────── Bulk Import ──────────────────────────────
 @router.post(
     "/import",
     status_code=status.HTTP_201_CREATED,
@@ -64,18 +61,3 @@ async def import_orders(
 ) -> list[dict[str, Any]]:
     created: list[Order] = await OrderRepository().import_file(session, file)
     return [{"id": str(order.id), "client": order.client_id} for order in created]
-
-
-# ────────────────────────────── Lookup helpers ──────────────────────────────
-@router.get("/status", response_model=list[str])
-async def get_order_status(
-    session: AsyncSession = Depends(get_session_with_user),
-) -> list[str]:
-    return await OrderChartRepository(session).get_unique_descriptions()
-
-
-@router.get("/courier-name", response_model=list[str])
-async def get_courier_full_names(
-    session: AsyncSession = Depends(get_session_with_user),
-) -> list[str]:
-    return await OrderChartRepository(session).get_unique_full_names()
