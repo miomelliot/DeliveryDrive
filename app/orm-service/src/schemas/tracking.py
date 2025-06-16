@@ -24,7 +24,7 @@ class TrackingUpdate(BaseModel):
     pass
 
 
-class TrackingRead(_TrackingBase):
+class TrackingRead(TrackingCreate):
     id: UUID
     model_config = ConfigDict(from_attributes=True)
 

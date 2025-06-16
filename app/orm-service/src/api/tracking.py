@@ -1,23 +1,22 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Tracking
 from src.dependencies.db import get_session_with_user
 from src.repositories.tables.tracking import TrackingRepository
-from src.schemas.tracking import RouteLastEvent, TrackingCreateAPI, TrackingRead
+from src.schemas.tracking import RouteLastEvent, TrackingCreateAPI
 
 router = APIRouter(prefix="/tracking", tags=["Tracking"])
 
 
-@router.post("/", response_model=TrackingRead, status_code=201)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_tracking(
     data: TrackingCreateAPI,
     session: AsyncSession = Depends(get_session_with_user),
-) -> TrackingRead:
-    tracking: Tracking = await TrackingRepository().create_raw(session, data)
-    return TrackingRead.model_validate(tracking)
+) -> dict[str, str]:
+    await TrackingRepository().create_raw(session, data)
+    return {"detail": "Событие добавленно"}
 
 
 @router.get("/route/{route_id}", response_model=RouteLastEvent)
