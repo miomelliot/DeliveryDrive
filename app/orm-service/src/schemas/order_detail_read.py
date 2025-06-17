@@ -24,7 +24,7 @@ class OrderDetailRead(BaseModel):
     rent_end: date
     window: str
     phone: str
-    client_name: str
+    client_name: str | None
     courier_name: str | None
     location: str
     status: str
