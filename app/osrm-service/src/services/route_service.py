@@ -40,6 +40,20 @@ async def _create_notifications(session: AsyncSession, user_ids: Sequence[UUID],
     await session.flush()
 
 
+async def update_orders_status(
+    session: AsyncSession,
+    order_ids: Sequence[UUID],
+    code: str,
+) -> None:
+    """Bulk update status for orders by code."""
+    if not order_ids:
+        return
+    status_id: int = await _get_status_id(session, code)
+    await session.execute(
+        update(Order).where(Order.id.in_(order_ids)).values(status_id=status_id)
+    )
+
+
 async def save_routes(
     session: AsyncSession,
     plans: Sequence[dict[str, object]],
