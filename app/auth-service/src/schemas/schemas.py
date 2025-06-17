@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, SerializationInfo, 
 from src.db.models import Role
 
 
-# ─────────────────────────── Auth ────────────────────────────
+#  Auth 
 class AuthLogin(BaseModel):
     email: EmailStr = Field(..., examples=["user@example.com"])
     password: str = Field(..., min_length=8)

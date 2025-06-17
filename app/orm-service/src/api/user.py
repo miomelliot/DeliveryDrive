@@ -19,7 +19,7 @@ from src.schemas.user import (
 router = APIRouter(prefix="/user", tags=["User"])
 
 
-# ─────────────────────────── MANAGER ───────────────────────────
+#  MANAGER 
 @router.post(
     "/manager",
     response_model=UserManagerRead,
@@ -66,7 +66,7 @@ async def get_manager(
     return result
 
 
-# ─────────────────────────── COURIER ───────────────────────────
+#  COURIER 
 @router.post(
     "/courier",
     response_model=UserCourierRead,
@@ -113,7 +113,7 @@ async def get_courier(
     return result
 
 
-# ─────────────────────────── DELETE ───────────────────────────
+#  DELETE 
 @router.delete("/{user_id}", status_code=200)
 async def delete_user(
     user_id: UUID,

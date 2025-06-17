@@ -28,7 +28,7 @@ from src.utils.http_error import ConflictError, NotFoundError
 SAVE_DIR = Path("/app/static/icons")
 
 
-# ─────────────────────────── Base ───────────────────────────
+#  Base 
 class UserBaseRepository:
     # - CRUD -
     async def delete(self, session: AsyncSession, user_id: UUID) -> bool:
@@ -62,7 +62,7 @@ class UserBaseRepository:
         return f"/static/icons/{user_id}.png"
 
 
-# ───────────────────────── Manager ─────────────────────────
+#  Manager 
 class UserManagerRepository(UserBaseRepository):
     async def create(self, session: AsyncSession, data: UserManagerCreate, icon: UploadFile | None) -> UserManagerRead:
         role: Role = await self._get_role(session, "manager")
@@ -150,7 +150,7 @@ class UserManagerRepository(UserBaseRepository):
         )
 
 
-# ───────────────────────── Courier ─────────────────────────
+#  Courier 
 class UserCourierRepository(UserBaseRepository):
     async def create(self, session: AsyncSession, data: UserCourierCreate, icon: UploadFile | None) -> UserCourierRead:
         role: Role = await self._get_role(session, "courier")

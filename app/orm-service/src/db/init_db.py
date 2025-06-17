@@ -20,7 +20,7 @@ from src.db.models import (
 )
 from src.db.session import AsyncSessionFactory, engine
 
-# ─────────── справочные наборы ───────────
+#  справочные наборы 
 ROLES: Sequence[tuple[int, str]] = [
     (1, "admin"),
     (2, "manager"),
@@ -62,7 +62,7 @@ TRANSPORT_TYPES: list[tuple[int, str, float, float]] = [
 ]
 
 
-# ─────────── универсальные апсерты ───────────
+#  универсальные апсерты 
 async def _upsert_simple(session: AsyncSession, model: Any, items: list[Any]) -> None:
     for item in items:
         stmt: Select[Tuple[Any]] = select(model).where(model.id == item[0])
@@ -124,7 +124,7 @@ async def _create_warehouse(session: AsyncSession, addr: Address) -> None:
     session.add(Warehouse(address_id=addr.id))
 
 
-# ─────────── точка входа ───────────
+#  точка входа 
 async def init_db() -> None:
     # создаём таблицы (если ещё нет)
     async with engine.begin() as conn:

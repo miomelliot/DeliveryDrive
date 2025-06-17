@@ -11,11 +11,11 @@ from src.core.config import Settings, get_settings
 
 _cfg: Settings = get_settings()
 
-# ── конфигурация Argon2 ───────────────────────────────────────
+#  конфигурация Argon2 
 _pwd_ctx: CryptContext = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-# ─────────────────────── password helpers ─────────────────────
+#  password helpers 
 def hash_password(raw: str) -> str:
     """Вернуть Argon2-хеш пароля."""
     return cast(str, _pwd_ctx.hash(raw))
@@ -26,7 +26,7 @@ def verify_password(raw: str, hashed: str) -> bool:
     return cast(bool, _pwd_ctx.verify(raw, hashed))
 
 
-# ─────────────────────── JWT helpers ──────────────────────────
+#  JWT helpers 
 def create_access_token(*, user_id: UUID, role: str) -> str:
     """
     Сформировать access-token.

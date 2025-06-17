@@ -22,7 +22,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# ───────────────────────── login ────────────────────────────
+#  login 
 @router.post("/login", response_model=Token, summary="Login → получить access-token")
 async def login(
     data: AuthLogin,
@@ -38,7 +38,7 @@ async def login(
     return Token(access_token=token)
 
 
-# ─────────────────── current user dependency ────────────────
+#  current user dependency 
 async def get_current_user(
     creds: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_session),
@@ -60,7 +60,7 @@ async def get_current_user(
     return user
 
 
-# ───────────────────────── /me ───────────────────────────────
+#  /me 
 @router.get("/me", response_model=UserOut, summary="Текущий пользователь")
 async def read_me(current_user: User = Depends(get_current_user)) -> UserOut:
     return UserOut(

@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # ── базовые переменные; в контейнере переопределяются через ENV ────────────
+    #  базовые переменные; в контейнере переопределяются через ENV 
     user: str = Field("postgres", alias="POSTGRES_USER")
     password: str = Field("postgres", alias="POSTGRES_PASSWORD")
     host: str = Field("localhost", alias="POSTGRES_HOST")
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     jwt_alg: str = Field("HS256", alias="JWT_ALG")
     access_token_ttl: int = Field(60 * 24 * 30, alias="ACCESS_TOKEN_TTL_MIN")  # 30 дней
 
-    # ── готовый DSN для SQLAlchemy ─────────────────────────────────────────────
+    #  готовый DSN для SQLAlchemy 
     @property
     def sqlalchemy_dsn_str(self) -> str:
         return str(
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
             )
         )
 
-    # ── pydantic-config ────────────────────────────────────────────────────────
+    #  pydantic-config 
     model_config = SettingsConfigDict(
         env_file=os.getenv("ENV_FILE", ".env"),
         env_file_encoding="utf-8",
