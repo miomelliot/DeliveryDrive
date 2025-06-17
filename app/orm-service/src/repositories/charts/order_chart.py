@@ -54,6 +54,9 @@ class OrderChartRepository:
         if filters.only_active:
             stmt = stmt.where(~OrderStatus.code.in_(["completed", "cancelled"]))
 
+        if filters.rent_start:
+            stmt = stmt.where(Order.rent_start == filters.rent_start)
+
         field_map = {
             "id": Order.id,
             "created_at": Order.created_at,

@@ -1,5 +1,5 @@
 # src/schemas/order_chart.py
-from datetime import datetime, time
+from datetime import date, datetime, time
 from typing import Literal
 from uuid import UUID
 
@@ -52,6 +52,7 @@ class OrderChartFilter(BaseModel):
         ]
         | None
     ) = None
+    rent_start: date | None = None
 
     # 🔽 Фильтрация по диапазону времени окна
     window_start_from: time | None = None
