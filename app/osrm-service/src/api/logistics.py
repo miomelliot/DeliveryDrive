@@ -14,7 +14,7 @@ from src.db.session import AsyncSessionFactory
 from src.schemas.logistics import Logistics
 from src.services.logistics_builder import build_logistics
 from src.services.logistics_service import process_logistics
-from src.services.route_service import save_routes
+from src.services.route_service import save_routes, update_orders_status
 
 router = APIRouter(prefix="/logistics", tags=["Logistics"])
 
@@ -26,16 +26,36 @@ async def _save_routes_bg(plans: list[dict[str, Any]]) -> None:
 
 
 async def _process_and_save(payload: Logistics, settings: Settings) -> None:
-    routes: list[dict[str, Any]] = await process_logistics(payload, settings)
-    await _save_routes_bg(routes)
+    order_ids: list[UUID] = [o.order_id for o in payload.orders]
+    async with AsyncSessionFactory() as session:
+        async with session.begin():
+            await update_orders_status(session, order_ids, "in_processing")
+    try:
+        routes: list[dict[str, Any]] = await process_logistics(payload, settings)
+        await _save_routes_bg(routes)
+    except Exception:
+        async with AsyncSessionFactory() as session:
+            async with session.begin():
+                await update_orders_status(session, order_ids, "new")
+        raise
 
 
 async def _assign_routes_bg(order_ids: list[UUID], settings: Settings) -> None:
     async with AsyncSessionFactory() as session:
         async with session.begin():
-            payload: Logistics = await build_logistics(session, order_ids)
-            plans: list[dict[str, Any]] = await process_logistics(payload, settings)
-            await save_routes(session, plans)
+            await update_orders_status(session, order_ids, "in_processing")
+
+    try:
+        async with AsyncSessionFactory() as session:
+            async with session.begin():
+                payload: Logistics = await build_logistics(session, order_ids)
+                plans: list[dict[str, Any]] = await process_logistics(payload, settings)
+                await save_routes(session, plans)
+    except Exception:
+        async with AsyncSessionFactory() as session:
+            async with session.begin():
+                await update_orders_status(session, order_ids, "new")
+        raise
 
 
 @asynccontextmanager
