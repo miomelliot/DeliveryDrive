@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models import RouteItem
 from src.dependencies.db import get_session_with_user
 from src.repositories.route import RouteRepository
 from src.repositories.tables.route_item import RouteItemRepository
@@ -34,7 +35,7 @@ async def add_route_item(
     payload: RouteItemCreate,
     session: AsyncSession = Depends(get_session_with_user),
 ) -> RouteItemRead:
-    item = await RouteItemRepository().add_item(session, payload.route_id, payload.order_id)
+    item: RouteItem = await RouteItemRepository().add_item(session, payload.route_id, payload.order_id)
     return RouteItemRead.model_validate(item)
 
 

@@ -17,7 +17,7 @@ class RouteItemRepository(CRUDRepository[RouteItem, RouteItemCreate, RouteItemUp
     async def add_item(self, session: AsyncSession, route_id: UUID, order_id: UUID) -> RouteItem:
         stmt: Select[Tuple[int]] = select(func.max(RouteItem.sequence)).where(RouteItem.route_id == route_id)
         last_seq: int | None = await session.scalar(stmt)
-        item = RouteItem(route_id=route_id, order_id=order_id, sequence=(last_seq or 0) + 1)
+        item = RouteItem(route_id=route_id, order_id=order_id, sequence=(last_seq or -1) + 1)
         session.add(item)
         await session.flush()
         await session.refresh(item)
