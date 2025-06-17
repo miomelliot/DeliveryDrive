@@ -29,6 +29,7 @@ from src.db.models import (
     Route,
     RouteItem,
     User,
+    Warehouse,
 )
 from src.repositories.tables.base import CRUDRepository
 from src.repositories.tables.client import ClientRepository
@@ -81,6 +82,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
                 new_status_code="rented",
                 limit=eq.quantity,
                 model=heater_type.model,
+                new_address_id=client.address_id,
             )
 
             await OrderItemRepository().create(
@@ -124,6 +126,11 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         order.status_id = new_status_id
         await session.flush()
         await session.refresh(order)
+
+        if new_status_code in ("completed", "cancelled"):
+            equipment_list: list[Equipment] = await OrderItemRepository().get_item_from_order_id(session, order.id)
+            for equipment in equipment_list:
+                await EquipmentRepository().update_status(session, equipment.id, "available")
 
         await OrderHistoryRepository().create(
             session,
@@ -366,6 +373,14 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
     async def delete(self, session: AsyncSession, id: UUID | int) -> None:
         equipment_list: list[Equipment] = await OrderItemRepository().get_item_from_order_id(session, id)
         for equipment in equipment_list:
-            await EquipmentRepository().update_status(session, equipment.id, "available")
+            warehouse_address_id: UUID | None = await session.scalar(
+                select(Warehouse.address_id).where(Warehouse.id == equipment.warehouse_id)
+            )
+            await EquipmentRepository().update_status(
+                session,
+                equipment.id,
+                "available",
+                address_id=warehouse_address_id,
+            )
 
         return await super().delete(session, id)
