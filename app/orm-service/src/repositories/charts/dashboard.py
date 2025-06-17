@@ -57,7 +57,7 @@ class DashboardRepository:
         return [DayCount(date=row[0], count=row[1]) for row in rows]
 
     async def orders_summary_for_day(self, session: AsyncSession, day: date) -> OrdersSummaryResponse:
-        orders_subq: Subquery = (select(Order.id, Order.status_id).where(func.date(Order.created_at) == day)).subquery()
+        orders_subq: Subquery = (select(Order.id, Order.status_id).where(func.date(Order.rent_start) == day)).subquery()
 
         def count_with_status(code: str) -> ScalarSelect[int]:
             return (
