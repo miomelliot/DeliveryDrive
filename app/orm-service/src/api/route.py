@@ -49,7 +49,7 @@ async def delete_route_item(
     return {"detail": "Маршрут обновлён"}
 
 
-@router.delete("/{order_id}")
+@router.delete("/{route_id}")
 async def delete(
     route_id: UUID,
     session: AsyncSession = Depends(get_session_with_user),
