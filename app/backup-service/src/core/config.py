@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     port: int = Field(5432, alias="POSTGRES_PORT")
     db: str = Field("postgres", alias="POSTGRES_DB")
 
-    # --- App / Debug ----------------------------------------------
+    #  App / Debug -
     debug: bool = Field(False, alias="DEBUG")
 
     # ── pydantic-config ────────────────────────────────────────────────────────

@@ -30,7 +30,7 @@ SAVE_DIR = Path("/app/static/icons")
 
 # ─────────────────────────── Base ───────────────────────────
 class UserBaseRepository:
-    # ---------- CRUD ----------
+    # - CRUD -
     async def delete(self, session: AsyncSession, user_id: UUID) -> bool:
         """
         Удаляет пользователя и возвращает True, если запись действительно была,
@@ -40,7 +40,7 @@ class UserBaseRepository:
         res: Result[Tuple[UUID]] = await session.execute(stmt)
         return res.scalar_one_or_none() is not None
 
-    # ---------- helpers ----------
+    # - helpers -
     async def _get_role(self, session: AsyncSession, name: str) -> Role:
         role: Role | None = await session.scalar(select(Role).where(Role.name == name))
         if role is None:

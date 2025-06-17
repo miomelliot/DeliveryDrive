@@ -14,7 +14,7 @@ class OrderHistoryRepository(CRUDRepository[OrderHistory, OrderHistoryCreate, Or
     def __init__(self) -> None:
         super().__init__(OrderHistory)
 
-    # --- запрещённые операции -------------------------------------------
+    #  запрещённые операции -
     async def update(
         self,
         session: AsyncSession,

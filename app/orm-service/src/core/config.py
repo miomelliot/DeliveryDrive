@@ -15,10 +15,10 @@ class Settings(BaseSettings):
     db: str = Field("postgres", alias="POSTGRES_DB")
     osrm_service_url: str = Field("http://osrm-service:8000", alias="OSRM_SERVICE_URL")
 
-    # --- App / Debug ----------------------------------------------
+    #  App / Debug -
     debug: bool = Field(False, alias="DEBUG")
 
-    # --- Auth/JWT -------------------------------------------------
+    #  Auth/JWT -
     jwt_secret: str = Field(default=str("super-secret-change-me"), alias="JWT_SECRET")
     jwt_alg: str = Field("HS256", alias="JWT_ALG")
     access_token_ttl: int = Field(60 * 24 * 30, alias="ACCESS_TOKEN_TTL_MIN")  # 30 дней

@@ -8,17 +8,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # --- Postgres  ------------------------------------------------
+    #  Postgres  
     user: str = Field("postgres", alias="POSTGRES_USER")
     password: str = Field("postgres", alias="POSTGRES_PASSWORD")
     host: str = Field("localhost", alias="POSTGRES_HOST")
     port: int = Field(5432, alias="POSTGRES_PORT")
     db: str = Field("postgres", alias="POSTGRES_DB")
 
-    # --- App / Debug ----------------------------------------------
+    #  App / Debug -
     debug: bool = Field(False, alias="DEBUG")
 
-    # --- Auth/JWT -------------------------------------------------
+    #  Auth/JWT 
     jwt_secret: str = Field(default=str("super-secret-change-me"), alias="JWT_SECRET")
     jwt_alg: str = Field("HS256", alias="JWT_ALG")
     access_token_ttl: int = Field(60 * 24 * 30, alias="ACCESS_TOKEN_TTL_MIN")  # 30 дней
@@ -37,12 +37,12 @@ class Settings(BaseSettings):
             )
         )
 
-    # --- timedelta для create_access_token() ---------------------
+    #  timedelta для create_access_token() 
     @property
     def access_token_expire(self) -> timedelta:
         return timedelta(minutes=self.access_token_ttl)
 
-    # --- pydantic-config -----------------------------------------
+    #  pydantic-config 
     model_config = SettingsConfigDict(
         env_file=os.getenv("ENV_FILE", ".env"),
         env_file_encoding="utf-8",

@@ -24,7 +24,7 @@ class CRUDRepository[
     def __init__(self, model: type[ModelT]) -> None:
         self.model: type[ModelT] = model
 
-    # ------------------ helpers ------------------
+    #  helpers 
     @staticmethod
     def _to_serializable(value: Any) -> Any:
         if isinstance(value, UUID):
@@ -58,7 +58,7 @@ class CRUDRepository[
             )
         )
 
-    # -------------------- READ --------------------
+    # -- READ --
     async def get(self, session: AsyncSession, id: UUID | int) -> ModelT:
         stmt: Select[Tuple[ModelT]] = select(self.model).where(self.model.id == id)
         res: Result[Tuple[ModelT]] = await session.execute(stmt)
@@ -74,7 +74,7 @@ class CRUDRepository[
         res: Result[Tuple[ModelT]] = await session.execute(stmt)
         return res.scalars().all()
 
-    # -------------------- CREATE --------------------
+    # -- CREATE --
     async def create(self, session: AsyncSession, obj_in: CreateT) -> ModelT:
         db_obj: ModelT = self.model(**obj_in.model_dump())
         session.add(db_obj)
@@ -89,7 +89,7 @@ class CRUDRepository[
         )
         return db_obj
 
-    # -------------------- UPDATE --------------------
+    # -- UPDATE --
     async def update(self, session: AsyncSession, db_obj: ModelT, obj_in: UpdateT) -> ModelT:
         old_snapshot: dict[str, Any] = self._as_dict(db_obj)
 
@@ -111,7 +111,7 @@ class CRUDRepository[
         db_obj: ModelT = await self.get(session, id)
         return await self.update(session, db_obj, obj_in)
 
-    # -------------------- DELETE --------------------
+    # -- DELETE --
     async def delete(self, session: AsyncSession, id: UUID | int) -> None:
         instance: ModelT = await self.get(session, id)
         await session.execute(delete(self.model).where(self.model.id == id))

@@ -38,7 +38,7 @@ def uuid_pk() -> Mapped[UUID]:
     )
 
 
-# ---------------- Reference ----------------
+# - Reference -
 class BaseLookup(Base):
     __abstract__ = True
 
@@ -133,7 +133,7 @@ class TransportType(Base):
     capacity: Mapped[float] = mapped_column(Float)
 
 
-# ---------------- Users ----------------
+# - Users -
 class User(Base):
     __tablename__ = "user"
 
@@ -169,7 +169,7 @@ class User(Base):
     )
 
 
-# --------------- Address / Warehouse ---------------
+#  Address / Warehouse 
 class Address(Base):
     __tablename__ = "address"
     id: Mapped[UUID] = uuid_pk()
@@ -188,7 +188,7 @@ class Warehouse(Base):
     address: Mapped[Address] = relationship()
 
 
-# --------------- Client / Order ---------------
+#  Client / Order 
 class Client(Base):
     __tablename__ = "client"
     id: Mapped[UUID] = uuid_pk()
@@ -246,7 +246,7 @@ class Contract(Base):
     order: Mapped[Order] = relationship(back_populates="contract")
 
 
-# --------------- Equipment ---------------
+#  Equipment 
 class Equipment(Base):
     __tablename__ = "equipment"
     id: Mapped[UUID] = uuid_pk()
@@ -276,7 +276,7 @@ class Maintenance(Base):
     equipment: Mapped[Equipment] = relationship(back_populates="maintenance")
 
 
-# ------------- OrderItem -------------
+# - OrderItem -
 class OrderItem(Base):
     __tablename__ = "order_item"
     id: Mapped[UUID] = uuid_pk()
@@ -288,7 +288,7 @@ class OrderItem(Base):
     heater_type: Mapped[HeaterType] = relationship()
 
 
-# --------------- Logistics ---------------
+#  Logistics 
 class Route(Base):
     __tablename__ = "route"
     id: Mapped[UUID] = uuid_pk()
@@ -337,7 +337,7 @@ class Transport(Base):
     transport_type: Mapped[TransportType] = relationship()
 
 
-# --------------- Finance ---------------
+#  Finance 
 class Invoice(Base):
     __tablename__ = "invoice"
     id: Mapped[UUID] = uuid_pk()
@@ -351,7 +351,7 @@ class Invoice(Base):
     status: Mapped[InvoiceStatus] = relationship(back_populates="invoices")
 
 
-# ----------- History / Audit -----------
+# -- History / Audit --
 class OrderHistory(Base):
     __tablename__ = "order_history"
     __table_args__ = (UniqueConstraint("order_id", "timestamp"),)
@@ -386,7 +386,7 @@ class AuditLog(Base):
     new_values: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
-# --------------- Notifications ---------------
+#  Notifications 
 class Notification(Base):
     __tablename__ = "notification"
     id: Mapped[UUID] = uuid_pk()
