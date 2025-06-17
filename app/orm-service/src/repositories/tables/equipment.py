@@ -49,6 +49,7 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
         new_status_code: str,
         limit: int,
         model: str,
+        new_address_id: UUID | None = None,
     ) -> list[Equipment]:
         status_repo = EquipmentStatusRepository()
         old_status_id: int = await status_repo.get_code_id(session, old_status_code)
@@ -68,11 +69,32 @@ class EquipmentRepository(CRUDRepository[Equipment, EquipmentCreate, EquipmentUp
 
         for eq in equipment_list:
             eq.equipment_status_id = new_status_id
+            if new_address_id is not None:
+                eq.current_address_id = new_address_id
 
         await session.flush()
         return list(equipment_list)
 
-    async def update_status(self, session: AsyncSession, id: UUID | int, status: str) -> Equipment:
+    async def update_status(
+        self,
+        session: AsyncSession,
+        id: UUID | int,
+        status: str,
+        *,
+        address_id: UUID | None = None,
+    ) -> Equipment:
         equipment_status_id: int = await EquipmentStatusRepository().get_code_id(session, status)
-        obj_in = EquipmentUpdate(equipment_status_id=equipment_status_id)
+
+        if address_id is None and status == "available":
+            stmt = (
+                select(Warehouse.address_id)
+                .join(Equipment, Equipment.warehouse_id == Warehouse.id)
+                .where(Equipment.id == id)
+            )
+            address_id = await session.scalar(stmt)
+
+        obj_in = EquipmentUpdate(
+            equipment_status_id=equipment_status_id,
+            current_address_id=address_id,
+        )
         return await super().update_by_id(session, id, obj_in)
