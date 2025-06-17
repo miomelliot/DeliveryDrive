@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import RouteItem
 from src.dependencies.db import get_session_with_user
-from src.repositories.route import RouteRepository
+from src.repositories.route import RouteRepository as RRouteRepository
+from src.repositories.tables.route import RouteRepository
 from src.repositories.tables.route_item import RouteItemRepository
 from src.schemas.route import RouteItemStatus, RouteRead
 from src.schemas.route_item import RouteItemCreate, RouteItemRead
@@ -18,7 +19,7 @@ async def list_routes_for_courier(
     courier_id: UUID,
     session: AsyncSession = Depends(get_session_with_user),
 ) -> RouteRead:
-    return await RouteRepository().list_by_courier(session, courier_id)
+    return await RRouteRepository().list_by_courier(session, courier_id)
 
 
 @router.get("/{route_id}/items", response_model=list[RouteItemStatus])
@@ -26,7 +27,7 @@ async def list_route_items_with_status(
     route_id: UUID,
     session: AsyncSession = Depends(get_session_with_user),
 ) -> list[RouteItemStatus]:
-    repo = RouteRepository()
+    repo = RRouteRepository()
     return await repo.list_items_with_status(session, route_id)
 
 
@@ -46,3 +47,12 @@ async def delete_route_item(
 ) -> dict[str, str]:
     await RouteItemRepository().delete_by_order(session, order_id)
     return {"detail": "Маршрут обновлён"}
+
+
+@router.delete("/{order_id}")
+async def delete(
+    route_id: UUID,
+    session: AsyncSession = Depends(get_session_with_user),
+) -> dict[str, str]:
+    await RouteRepository().delete(session, route_id)
+    return {"detail": "Маршрутный лист удалён"}
