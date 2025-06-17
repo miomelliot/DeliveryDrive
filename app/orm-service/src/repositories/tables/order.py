@@ -117,7 +117,7 @@ class OrderRepository(CRUDRepository[Order, OrderCreate, OrderUpdate]):
         if new_status_code is None:
             return order.status_id
 
-        new_status_id: int = await OrderStatusRepository().get_description_id(session, new_status_code)
+        new_status_id: int = await OrderStatusRepository().get_code_id(session, new_status_code)
 
         if order.status_id == new_status_id:
             return order.status_id
