@@ -34,6 +34,6 @@ class BaseStatusRepository[ModelT: HasIdAndCode](CRUDRepository[ModelT, BaseLook
         instance: int | None = res.scalars().first()
 
         if instance is None:
-            raise ConflictError(f"По запросу {description} не было наёдено статуса")
+            raise ConflictError(f"По запросу {description} не было найдено статуса")
 
         return instance
